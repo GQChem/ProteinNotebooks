@@ -33,7 +33,7 @@ if [ ! -d "RFdiffusion" ]; then
     echo
     echo B.iii Setting up environment ProteinEnv
     cd ../env
-    wget https://raw.githubusercontent.com/GQChem/HelpScripts/main/ProteinEnv.yml
+    wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/ProteinEnv.yml
     module load mamba
     mamba env create -f ProteinEnv.yml 
     conda activate ProteinEnv
@@ -65,6 +65,7 @@ fi
 echo
 echo D. OMEGAFOLD
 if [ ! -d "OmegaFold" ]; then
+    conda activate ProteinEnv
     git clone https://github.com/HeliXonProtein/OmegaFold
     cd OmegaFold
     python setup.py install
