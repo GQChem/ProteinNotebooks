@@ -77,9 +77,11 @@ fi
 
 echo
 echo E. HELP SCRIPTS AND NOTEBOOKS
+cd ..
 if [ ! -d "ProteinNotebooks" ]; then
     git clone https://github.com/GQChem/ProteinNotebooks
 else
+    cd ProteinNotebooks
     git pull https://github.com/GQChem/ProteinNotebooks
 fi
 
