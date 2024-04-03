@@ -82,7 +82,12 @@ if [ ! -d "ProteinNotebooks" ]; then
     git clone https://github.com/GQChem/ProteinNotebooks
 else
     cd ProteinNotebooks
-    git pull https://github.com/GQChem/ProteinNotebooks
+    git add PDBs
+    git add Pipelines
+    git stash push -m "Saving PDBs and pipelines"
+    git fetch origin
+    git reset --hard origin/main
+    git stash pop
 fi
 
 echo DONE!
