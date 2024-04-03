@@ -81,13 +81,22 @@ cd ..
 if [ ! -d "ProteinNotebooks" ]; then
     git clone https://github.com/GQChem/ProteinNotebooks
 else
-    cd ProteinNotebooks
-    git add PDBs
-    git add Pipelines
-    git stash push -m "Saving PDBs and pipelines"
-    git fetch origin
-    git reset --hard origin/main
-    git stash pop
+    if [ ! -d "_BackupPDBs" ]; then
+        rm -r _BackupPDBs
+    fi
+    if [ ! -d "_BackupPipelines" ]; then
+        rm -r _BackupPipelines
+    fi
+    mv ProteinNotebooks/PDBs _BackupPDBs
+    mv ProteinNotebooks/Pipelines _BackupPipelines
+    rm -r ProteinNotebooks
+    git clone https://github.com/GQChem/ProteinNotebooks
+    rm -r ProteinNotebooks/PDBs
+    rm -r ProteinNotebooks/Pipelines
+    mv _BackupPDBs ProteinNotebooks/PDBs
+    mv _BackupPipelines ProteinNotebooks/Pipelines
+    rm -r _BackupPDBs
+    rm -r _BackupPipeline
 fi
 
 echo DONE!
