@@ -8,8 +8,8 @@ models=false
 for arg in "$@"; do
   shift
   case "$arg" in
-    "--notebook") set -- "$@" "-n" ;;
-    "--model")    set -- "$@" "-m" ;;
+    "--notebooks") set -- "$@" "-n" ;;
+    "--models")    set -- "$@" "-m" ;;
     *)            set -- "$@" "$arg"
   esac
 done
@@ -18,10 +18,10 @@ done
 while getopts ":nm" opt; do
   case $opt in
     n)
-      notebook=true
+      notebooks=true
       ;;
     m)
-      model=true
+      models=true
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
