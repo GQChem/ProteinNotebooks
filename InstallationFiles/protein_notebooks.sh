@@ -25,4 +25,4 @@ else
 fi
 
 echo
-echo DONE!
+echo Notebooks setup

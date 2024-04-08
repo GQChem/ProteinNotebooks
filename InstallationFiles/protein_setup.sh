@@ -59,4 +59,4 @@ if $notebooks; then
 fi
 
 echo
-echo DONE!
+echo Setup completed

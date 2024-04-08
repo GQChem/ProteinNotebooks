@@ -76,4 +76,4 @@ else
 fi
 
 echo
-echo DONE!
+echo Models setup
