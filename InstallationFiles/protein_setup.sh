@@ -54,23 +54,27 @@ else
   echo "ProteinEnv found"
 fi
 
-mamba activate ProteinEnv #Common to all models, contains pymol as well
+conda activate ProteinEnv #Common to all models, contains pymol as well
 
 if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
-  echo "Updating environment"
-  if ! conda list | grep -q "pymol-bundle"; then
+  echo "Updating environment ProteinEnv"
+
+  conda_list_output=$(conda list)
+  pip_list_output=$(pip list)
+
+  if ! "$conda_list_output" | grep -q "pymol-bundle"; then
     echo "Installing Pymol..."
     conda install -c conda-forge -c schrodinger pymol-bundle
   else
     echo "Pymol is already installed."
   fi
-  if ! pip list | grep -q "prody"; then
+  if ! "$pip_list_output" | grep -q "prody"; then
     echo "Installing prody..."
     pip install prody
   else
     echo "Prody is already installed"
   fi
-  if ! pip list | grep -q "ipython"; then
+  if ! "$pip_list_output" | grep -q "ipython"; then
     echo "Adding ProteinEnv to Jupyter Kernels"
     pip install ipython
     pip install ipykernel
@@ -97,6 +101,9 @@ if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
   echo "Setup completed"
 
 else
-  mamba init
-  echo "Restart your shell!"
+  echo
+  echo "Cannot activate the environment"
+  echo "Run the following command:"
+  echo "mamba init"
+  echo "Then restart your shell!"
 fi
