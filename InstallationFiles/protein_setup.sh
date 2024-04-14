@@ -2,78 +2,61 @@
 
 module load mamba
 
-# Function to check if mamba is initialized by trying to run a mamba command
-check_mamba_initialized() {
-    mamba list &> /dev/null
-    if [ $? -eq 0 ]; then
-        echo "Mamba is initialized."
-        return 0
-    else
-        echo "Mamba is not initialized."
-        return 1
-    fi
-}
-# Check if mamba is initialized
-if ! check_mamba_initialized; then
-    mamba init
-    echo "Mamba has been initialized. Please restart your shell."
-    # Optionally, force close the shell
-    # kill -9 $$
+notebooks=false
+models=false
+
+#Pre-process long options and convert them to short options
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    "--notebooks") set -- "$@" "-n" ;;
+    "--models")    set -- "$@" "-m" ;;
+    *)            set -- "$@" "$arg"
+  esac
+done
+
+# Process command-line options
+while getopts ":nm" opt; do
+  case $opt in
+    n)
+      notebooks=true
+      ;;
+    m)
+      models=true
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if $notebooks; then
+  echo
+  echo "Setting up notebooks..."
+  if [ -f "protein_notebooks.sh" ]; then
+  rm protein_notebooks.sh
+  fi
+  wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/protein_notebooks.sh
+  chmod +x protein_notebooks.sh
+  bash protein_notebooks.sh
+  rm protein_notebooks.sh
+fi
+
+# Install ProteinEnv if not present
+env_exists=$(conda env list | grep 'ProteinEnv')
+
+if [ -z "$env_exists" ]; then
+  cd ProteinNotebooks/InstallationFiles
+  mamba env create -f ProteinEnv.yml 
+  cd ../..
 else
-  notebooks=false
-  models=false
+  echo "ProteinEnv found"
+fi
 
-  #Pre-process long options and convert them to short options
-  for arg in "$@"; do
-    shift
-    case "$arg" in
-      "--notebooks") set -- "$@" "-n" ;;
-      "--models")    set -- "$@" "-m" ;;
-      *)            set -- "$@" "$arg"
-    esac
-  done
+conda activate ProteinEnv #Common to all models, contains pymol as well
 
-  # Process command-line options
-  while getopts ":nm" opt; do
-    case $opt in
-      n)
-        notebooks=true
-        ;;
-      m)
-        models=true
-        ;;
-      \?)
-        echo "Invalid option: -$OPTARG" >&2
-        exit 1
-        ;;
-    esac
-  done
-
-  if $notebooks; then
-    echo
-    echo "Setting up notebooks..."
-    if [ -f "protein_notebooks.sh" ]; then
-    rm protein_notebooks.sh
-    fi
-    wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/protein_notebooks.sh
-    chmod +x protein_notebooks.sh
-    bash protein_notebooks.sh
-    rm protein_notebooks.sh
-  fi
-
-  # Install ProteinEnv if not present
-  env_exists=$(conda env list | grep 'ProteinEnv')
-
-  if [ -z "$env_exists" ]; then
-    cd ProteinNotebooks/InstallationFiles
-    mamba env create -f ProteinEnv.yml 
-    cd ../..
-  else
-    echo "ProteinEnv found"
-  fi
-
-  conda activate ProteinEnv #Common to all models, contains pymol as well
-
+if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
   echo "Updating environment"
   if ! conda list | grep -q "pymol-bundle"; then
     echo "Installing Pymol..."
@@ -112,4 +95,8 @@ else
 
   echo
   echo "Setup completed"
+
+else
+  mamba init
+  echo "Restart your shell!"
 fi
