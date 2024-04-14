@@ -79,7 +79,16 @@ else
     echo "Already installed"
 fi
 
+echo
 echo "F. LigandMPNN"
+if [ ! -d "LigandMPNN" ]; then
+    git clone https://github.com/dauparas/LigandMPNN.git
+    cd LigandMPNN
+    bash get_model_params.sh "./model_params"
+    cd ..
+else
+    echo "Already installed"
+fi
 
 echo
 echo "Models setup completed !"

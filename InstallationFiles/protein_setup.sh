@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ~/miniconda3/etc/profile.d/conda.sh
+source /apps/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.3.0/mamba-23.11.0-0-334ztq7i4mzu762ew2x3kbbrrorhe6eg/etc/profile.d/conda.sh
 module load mamba
 
 notebooks=false
@@ -44,48 +44,50 @@ if $notebooks; then
   rm protein_notebooks.sh
 fi
 
-# Install ProteinEnv if not present
-env_exists=$(conda env list | grep 'ProteinEnv')
 
-if [ -z "$env_exists" ]; then
-  cd ProteinNotebooks/InstallationFiles
-  mamba env create -f ProteinEnv.yml 
-  cd ../..
-else
-  echo "ProteinEnv found"
-fi
+if $models; then
+  echo
+  # Install ProteinEnv if not present
+  env_exists=$(conda env list | grep 'ProteinEnv')
 
-conda activate ProteinEnv #Common to all models, contains pymol as well
-
-if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
-  echo "Updating environment ProteinEnv"
-
-  conda_list_output=$(conda list)
-  pip_list_output=$(pip list)
-
-  if ! "$conda_list_output" | grep -q "pymol-bundle"; then
-    echo "Installing Pymol..."
-    conda install -c conda-forge -c schrodinger pymol-bundle
+  if [ -z "$env_exists" ]; then
+    cd ProteinNotebooks/InstallationFiles
+    mamba env create -f ProteinEnv.yml 
+    cd ../..
   else
-    echo "Pymol is already installed."
+    echo "ProteinEnv found"
   fi
-  if ! "$pip_list_output" | grep -q "prody"; then
-    echo "Installing prody..."
-    pip install prody
-  else
-    echo "Prody is already installed"
-  fi
-  if ! "$pip_list_output" | grep -q "ipython"; then
-    echo "Adding ProteinEnv to Jupyter Kernels"
-    pip install ipython
-    pip install ipykernel
-    ipython kernel install --user --name ProteinEnv
-  else
-    echo "Kernel is already installed"
-  fi
-  echo "Environment i up-to-date"
 
-  if $models; then
+  conda activate ProteinEnv #Common to all models, contains pymol as well
+
+  if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
+    echo "Updating environment ProteinEnv"
+
+    conda_list_output=$(conda list)
+    pip_list_output=$(pip list)
+
+    if echo "$conda_list_output" | grep -q "pymol-bundle"; then
+      echo "Pymol is already installed"
+    else
+      echo "Installing Pymol..."
+      conda install -c conda-forge -c schrodinger pymol-bundle
+    fi
+    if python -c "import prody" &> /dev/null; then
+      echo "ProDy is already installed"
+    else
+      echo "ProDy is not installed, installing now..."
+      pip install prody
+    fi
+    if echo "$pip_list_output" | grep -q "ipython"; then
+      echo "Kernel is already installed"
+    else
+      echo "Adding ProteinEnv to Jupyter Kernels"
+      pip install ipython
+      pip install ipykernel
+      ipython kernel install --user --name ProteinEnv
+    fi
+    echo "Environment is up-to-date"
+
     echo
     echo "Setting up models..."
     cd /home/$USER/data
@@ -97,14 +99,7 @@ if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
     bash protein_models.sh
     rm protein_models.sh
   fi
-
-  echo
-  echo "Setup completed"
-
-else
-  echo
-  echo "Cannot activate the environment"
-  echo "Run the following command:"
-  echo "mamba init"
-  echo "Then restart your shell!"
 fi
+
+echo
+echo "Setup completed"
