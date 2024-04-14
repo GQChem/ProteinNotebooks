@@ -1,26 +1,26 @@
 #!/usr/bin/bash
 
-echo A. ALPHAFOLD
+echo "A. ALPHAFOLD (localcolabfold)"
 if [ ! -d "localcolabfold" ]; then
     echo
-    echo A.i Cloning repository...
+    echo "A.i Cloning repository..."
     wget https://raw.githubusercontent.com/YoshitakaMo/localcolabfold/main/install_colabbatch_linux.sh
     echo
-    echo A.ii Installing...
+    echo "A.ii Installing..."
     bash install_colabbatch_linux.sh
     rm install_colabbatch_linux.sh
 else
-    echo Already installed
+    echo "Already installed"
 fi
 
 echo
-echo B. RFDIFFUSION
+echo "B. RFDIFFUSION"
 if [ ! -d "RFdiffusion" ]; then
     echo
-    echo B.i Cloning repository...
+    echo "B.i Cloning repository..."
     git clone https://github.com/RosettaCommons/RFdiffusion.git
     echo
-    echo B.ii Downloading models...
+    echo "B.ii Downloading models..."
     cd RFdiffusion
     mkdir models && cd models
     wget http://files.ipd.uw.edu/pub/RFdiffusion/6f5902ac237024bdd0c176cb93063dc4/Base_ckpt.pt
@@ -31,49 +31,55 @@ if [ ! -d "RFdiffusion" ]; then
     wget http://files.ipd.uw.edu/pub/RFdiffusion/5532d2e1f3a4738decd58b19d633b3c3/ActiveSite_ckpt.pt
     wget http://files.ipd.uw.edu/pub/RFdiffusion/12fc204edeae5b57713c5ad7dcb97d39/Base_epoch8_ckpt.pt
     echo
-    echo B.iii Setting up environment ProteinEnv
-    cd ../env
-    wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/ProteinEnv.yml
-    module load mamba
-    mamba env create -f ProteinEnv.yml 
-    conda activate ProteinEnv
-    echo
-    echo B.iv Installing...
-    cd SE3Transformer
+    echo "B.iii Installing SE3Transformer..."
+    cd ../env/SE3Transformer
     pip install --no-cache-dir -r requirements.txt
     python setup.py install
     cd ../..
     pip install -e . 
-    echo
-    echo B.v Installing Pymol...
-    conda install -c conda-forge -c schrodinger pymol-bundle
+    cd ..
 else
-    echo Already installed
+    echo "Already installed"
 fi
 
 echo
-echo C. PROTEINMPNN
+echo "C. PROTEINMPNN"
 if [ ! -d "ProteinMPNN" ]; then
     echo
-    echo C.i Cloning repository...
-    cd ..
+    echo "C.i Cloning repository..."
     git clone https://github.com/dauparas/ProteinMPNN
 else
-    echo Already installed
+    echo "Already installed"
 fi
 
 echo
-echo D. OMEGAFOLD
+echo "D. OMEGAFOLD"
 if [ ! -d "OmegaFold" ]; then
-    conda activate ProteinEnv
     git clone https://github.com/HeliXonProtein/OmegaFold
     cd OmegaFold
     python setup.py install
     wget https://helixon.s3.amazonaws.com/release1.pt
-    wget https://helixon.s3.amazonaws.com/release2.pt
+    #wget https://helixon.s3.amazonaws.com/release2.pt
+    cd ..
 else
     echo Already installed
 fi
 
 echo
-echo Models setup
+echo "E. RFdiffusion All Atom"
+if [ ! -d "rf_diffusion_all_atom" ]; then
+    git clone https://github.com/baker-laboratory/rf_diffusion_all_atom.git
+    cd rf_diffusion_all_atom
+    wget http://files.ipd.uw.edu/pub/RF-All-Atom/containers/rf_se3_diffusion.sif
+    wget http://files.ipd.uw.edu/pub/RF-All-Atom/weights/RFDiffusionAA_paper_weights.pt
+    git submodule init
+    git submodule update
+    cd ..
+else
+    echo "Already installed"
+fi
+
+echo "F. LigandMPNN"
+
+echo
+echo "Models setup completed !"

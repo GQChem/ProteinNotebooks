@@ -1,8 +1,6 @@
 #!/usr/bin/bash
 
 echo
-echo E. HELP SCRIPTS AND NOTEBOOKS
-cd ..
 if [ ! -d "ProteinNotebooks" ]; then
     git clone https://github.com/GQChem/ProteinNotebooks
 else
@@ -25,4 +23,4 @@ else
 fi
 
 echo
-echo Notebooks setup
+echo "Notebooks setup completed!"
