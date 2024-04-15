@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-echo "A. ALPHAFOLD (localcolabfold)"
+echo "A. AlphaFold (localcolabfold)"
 if [ ! -d "localcolabfold" ]; then
     echo
     echo "A.i Cloning repository..."
@@ -14,7 +14,7 @@ else
 fi
 
 echo
-echo "B. RFDIFFUSION"
+echo "B. RFdiffusion"
 if [ ! -d "RFdiffusion" ]; then
     echo
     echo "B.i Cloning repository..."
@@ -43,7 +43,7 @@ else
 fi
 
 echo
-echo "C. PROTEINMPNN"
+echo "C. ProteinMPNN"
 if [ ! -d "ProteinMPNN" ]; then
     echo
     echo "C.i Cloning repository..."
@@ -53,7 +53,7 @@ else
 fi
 
 echo
-echo "D. OMEGAFOLD"
+echo "D. OmegaFold"
 if [ ! -d "OmegaFold" ]; then
     git clone https://github.com/HeliXonProtein/OmegaFold
     cd OmegaFold
@@ -91,4 +91,4 @@ else
 fi
 
 echo
-echo "Models setup completed !"
+echo "Models setup completed!"
