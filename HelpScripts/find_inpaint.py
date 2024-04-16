@@ -15,7 +15,6 @@ parser.add_argument('pdb_file', type=str, help = "Path to input file")
 parser.add_argument('inpaint_csv_file', type=str, help = "Path to inpaint.csv file")
 parser.add_argument('inpaint_pse_file', type=str, help = "Path to inpaint.pse file")
 
-
 # Parse the arguments
 args = parser.parse_args()
 
@@ -147,19 +146,21 @@ for i in range(len(fixed_original)):
     if fixed_occurancy[i] >= args.INPAINT_AUTO_MIN_OCCURENCY:
         inpaint_flag.append(fixed_original[i])
 
-inpaint_input_chains = args.INPAINT.split('/')
-for chain in inpaint_input_chains:
-    if chain[0].isnumeric(): continue
-    min,max=chain[1:].split('-')
-    for resi in range(int(min),int(max)+1):
-        inpaint_flag.append(resi)
+if args.INPAINT != "-":
+    inpaint_input_chains = args.INPAINT.split('/')
+    for chain in inpaint_input_chains:
+        if chain[0].isnumeric(): continue
+        min,max=chain[1:].split('-')
+        for resi in range(int(min),int(max)+1):
+            inpaint_flag.append(resi)
 
-to_exclude = sele_to_list(args.INPAINT_AUTO_EXCLUDE)
-for resi in to_exclude: 
-    try:
-        inpaint_flag.remove()
-    except Exception:
-        pass
+if args.INPAINT_AUTO_EXCLUDE != "-":
+    to_exclude = sele_to_list(args.INPAINT_AUTO_EXCLUDE)
+    for resi in to_exclude: 
+        try:
+            inpaint_flag.remove()
+        except Exception:
+            pass
 
 sorted_inpaint_flag = list(sorted(inpaint_flag))
 inpaint_seq = "A"+list_to_sele(sorted_inpaint_flag).replace('+','/A')
