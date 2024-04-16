@@ -63,27 +63,34 @@ import pymol
 from pymol import cmd
 
 design_names = [d[:-4] for d in os.listdir(args.INPAINT_FOLDER) if d.endswith(".pdb")] #exclude pdb extension
+
 fixed = dict()
 mobile = dict()
 #derive fixed from logfile PKILFEDP-----PLSEDWQ----...
 with open(args.rfd_log_file,"r") as rfdlog:
-    all_log = [line.strip() for line in rfdlog.readlines()]
-    for name in design_names:
-        seq = ""
-        #The sequence input is found a few lines after RFD says it is designing something
-        log_found = False
-        for line in all_log:
-            if not log_found:
-                if "Making design" in line and line.endswith(name):
-                    log_found = True
-                    continue
-            if log_found:
-                if "Sequence init" in line:
-                    seq = line.split(" ")[-1]
-                    break
+    log_found = False
+    seq = ""
+    found_name = ""
+    for line in rfdlog:
+        line = line.strip()
+        print(line)
+        if not log_found:
+            if "Making design" in line:
+                for name in design_names:
+                    if line.endswith(name):
+                        found_name = name
+                log_found = True
+                print("Design: "+found_name)
+        if log_found:
+            if "Sequence init" in line:
+                seq = line.split(" ")[-1]
+                fixed[found_name] = [i+1 for i, x in enumerate(seq) if x != "-"]
+                mobile[found_name] = [i+1 for i, x in enumerate(seq) if x == "-"]
+                log_found = False
+                print("Sequence: "+seq)
 
-        fixed[name] = [i+1 for i, x in enumerate(seq) if x != "-"]
-        mobile[name] = [i+1 for i, x in enumerate(seq) if x == "-"]
+print(fixed)
+print(mobile)
 
 #derives all fixed aminoacids in the original structure form contigs
 #example 5-10/A11-18/1/A22-25/9 will result in 11,12,13,14,15,16,17,18,22,23,24,25
@@ -114,8 +121,13 @@ for name in design_names:
     fixed_selection = list_to_sele(fixed[name])
     mobile_selection = list_to_sele(mobile[name])
 
-    cmd.select('fixed_residues', f'design and resi ({fixed_selection})')
-    cmd.select('mobile_residues', f'design and resi ({mobile_selection})')
+    print(fixed[name])
+    print(mobile[name])
+    print(fixed_selection)
+    print(mobile_selection)
+
+    cmd.select('fixed_residues', f'design and resi {fixed_selection}')
+    cmd.select('mobile_residues', f'design and resi {mobile_selection}')
 
     # Find close residues
     cmd.find_pairs('fixed_residues', 'mobile_residues', mode=0, cutoff=args.INPAINT_AUTO_DISTANCE)
