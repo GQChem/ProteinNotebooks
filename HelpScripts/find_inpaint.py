@@ -1,7 +1,6 @@
 import argparse
 
 parser = argparse.ArgumentParser(description='Reads RFD log to create fixed positions')
-parser.add_argument('JOB_FOLDER', type=str, help="")
 parser.add_argument('INPAINT_FOLDER', type=str, help="")
 parser.add_argument('rfd_log_file', type=str, help = "Path to rfd.log file")
 parser.add_argument('rfd_sh_file', type=str, help = "Path to rfd.sh file")
@@ -61,6 +60,7 @@ def list_to_sele(a):
 import os
 import pymol
 from pymol import cmd, stored
+import numpy as np
 
 design_names = [d[:-4] for d in os.listdir(args.INPAINT_FOLDER) if d.endswith(".pdb")] #exclude pdb extension
 
@@ -109,18 +109,33 @@ except Exception as e:
 
 #Find proximity
 for name in design_names:
+    print(name)
     design_pdb = os.path.join(args.INPAINT_FOLDER,name+".pdb")
     cmd.load(design_pdb,"design")
     for f_r in fixed[name]:
-        stored.resn = ""
-        cmd.iterate(f'myprotein and resi {f_r}', 'stored.resn = resn')
-        if not stored.resn == "GLY":
-            for m_r in mobile[name]:
-                if cmd.get_distance(f"design and resi {f_r} and name CA",f"design and resi {m_r} and name CA") <= args.INPAINT_AUTO_DISTANCE:
-                    #check that the side chain of the fixed residue is pointing toward the designed ones
-                    #for this, considers the angle between CAf-CAm and CAf-CBf
-                    angle = cmd.get_angle(f"design and resi {m_r} and name CA",f"design and resi {f_r} and name CA",f"design and resi {f_r} and name CB")
-                    fixed_occurancy[fixed[name].index(f_r)] += 1
+        fA = f"design and resi {f_r} and name CA"
+        fC = f"design and resi {f_r} and name C"
+        fN = f"design and resi {f_r} and name N"
+        occ_index = fixed[name].index(f_r)
+        for m_r in mobile[name]:
+            mA = f"design and resi {m_r} and name CA"
+            if cmd.get_distance(fA,mA) <= args.INPAINT_AUTO_DISTANCE:
+                #check that the side chain of the fixed residue is pointing toward the designed ones
+                #for this, considers the angle between CAf-CAm and CAf-CBf
+                fA_c = cmd.get_coords(fA)[0]
+                mA_c = cmd.get_coords(mA)[0]
+
+                fC_c = cmd.get_coords(fC)[0]
+                fN_c = cmd.get_coords(fN)[0]
+                fCN_c = 0.5 * (fC_c + fN_c)
+
+                fNC_fA = fA_c - fCN_c
+                mA_fA = mA_c - fCN_c
+
+                angle = 180.0 / np.pi * np.arccos(np.dot(fNC_fA,mA_fA)/(np.linalg.norm(fNC_fA)*np.linalg.norm(mA_fA)))
+
+                if angle < 90: ##COULD BE A PARAMETER
+                    fixed_occurancy[occ_index] += 1
                     break
     cmd.delete("design")
 

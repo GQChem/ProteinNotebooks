@@ -9,6 +9,7 @@ parser.add_argument('of_out_folder', type=str, help = "path to of generated pdbs
 parser.add_argument('pdb_file', type=str, help = "RMSD will be included as a metrics. Write - otherwise, don't leave empty!")
 parser.add_argument('rank_output_csv_file', type=str, help = "where to save")
 parser.add_argument('metric', type=str, help = "pLDDT or RMSD")
+parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
 parser.add_argument('only_first', type=bool, help = "Only compare the best folding of each sequence generated")
@@ -74,11 +75,19 @@ def calculate_plddt(folded_path):
     return -1
 
 def calculate_rmsd(folded_path):
+    global args
     try:    
         # Load the two protein structures
         cmd.load(folded_path, "folded")
-        # Align the proteins and calculate RMSD from backbone
-        rmsd = cmd.align("original and name CA+C+N+O", "folded and name CA+C+N+O")[0]  # cmd.align returns a tuple, RMSD is the first element
+        # Align the proteins and calculate RMSD
+        if args.alignment == 'align':
+            rmsd = cmd.align("folded and name CA+C+N+O","original and name CA+C+N+O")[0]  
+        elif args.alignment == 'cealign':
+            cealign = cmd.cealign("original and name CA+C+N+O", "folded and name CA+C+N+O")
+            rmsd = cealign["RMSD"]
+        elif args.alignment == 'super':            
+            rmsd = cmd.super("folded and name CA+C+N+O","original and name CA+C+N+O")[0]
+
         cmd.delete("folded")
         return rmsd
     except Exception as e:
@@ -265,13 +274,15 @@ def plddt(selection="all"):
             pLDDT_sum += atom.b
             residues_inspected.append(resi)
         pLDDT_avg = pLDDT_sum * 1.0 / len(residues_inspected)
-        print(f"Object: {prot}\tpLDDT:{pLDDT_avg:.2f}")
+        print(f"Object: {prot}\tpLDDT: {pLDDT_avg:.2f}")
 cmd.extend('rank_plddt', plddt)
 
 if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     N_best = args.pymol_best_pse if args.pymol_best_pse < len(ranked_data) else len(ranked_data)
     cmd.load(args.pdb_file, "original")
     cmd.color("bluewhite","original")
+    num_d = 0 #Number of best designs considered
+    best_designs = []
     for i in range(N_best):
         scores = ranked_data[i]
         name = scores["name"]
@@ -280,8 +291,14 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         sequence = undscore_split[-1]
         if design.isnumeric():
             short_name = f"d{design}s{sequence}"
+            if design in best_designs:
+                continue
+            else:
+                best_designs.append(design)
+                num_d += 1
         else:
             short_name = f"s{sequence}"
+            num_d += 1
         pLDDT_obj = f"{short_name}_pLDDT"
         cmd.load(scores["path"], pLDDT_obj)
         cmd.do(f"rank_plddt {pLDDT_obj}")
@@ -291,7 +308,7 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.color("hotpink",mobile_obj)
         fixed_sele = scores["fixed"]
         cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
-        cmd.align(mobile_obj, "original")
+    cmd.alignto("original")
     cmd.save(args.pymol_pse_file)
 
 cmd.quit()
