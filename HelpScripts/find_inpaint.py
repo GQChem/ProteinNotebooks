@@ -177,12 +177,17 @@ with open(args.rfd_sh_file,'w') as rfd_sh:
 #Save data
 #CSV file
 with open(args.inpaint_csv_file,'w') as inpaint_csv:
-    inpaint_csv.write("resi,occurancy")
+    inpaint_csv.write("resi,occurancy,inpainted")
     for i in range(len(fixed_original)):
         inpaint_csv.write('\n')
         inpaint_csv.write(str(fixed_original[i]))
         inpaint_csv.write(',')
         inpaint_csv.write(str(fixed_occurancy[i]))
+        inpaint_csv.write(',')
+        if fixed_occurancy[i] >= args.INPAINT_AUTO_MIN_OCCURENCY:
+            inpaint_csv.write('1')
+        else:
+            inpaint_csv.write('0')
 
 #PyMol Session
 
