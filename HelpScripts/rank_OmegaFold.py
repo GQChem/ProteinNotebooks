@@ -308,7 +308,7 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.color("hotpink",mobile_obj)
         fixed_sele = scores["fixed"]
         cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
-    cmd.alignto("original")
+    cmd.alignto("original",args.alignment)
     cmd.save(args.pymol_pse_file)
 
 cmd.quit()
