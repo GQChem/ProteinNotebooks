@@ -7,7 +7,7 @@ parser.add_argument('rfd_log_file', type=str, help = "Path to rfd.log file")
 parser.add_argument('rfd_sh_file', type=str, help = "Path to rfd.sh file")
 parser.add_argument('CONTIGS', type=str, help = "")
 parser.add_argument('INPAINT', type=str, help = "")
-parser.add_argument('INPAINT_AUTO_NUM_DESIGNS', type=str, help = "")
+parser.add_argument('INPAINT_AUTO_NUM_DESIGNS', type=int, help = "")
 parser.add_argument('INPAINT_AUTO_DISTANCE', type=float, help = "")
 parser.add_argument('INPAINT_AUTO_MIN_OCCURENCY', type=int, help = "")
 parser.add_argument('INPAINT_AUTO_EXCLUDE', type=str, help = "")
@@ -60,7 +60,7 @@ def list_to_sele(a):
 
 import os
 import pymol
-from pymol import cmd
+from pymol import cmd, stored
 
 design_names = [d[:-4] for d in os.listdir(args.INPAINT_FOLDER) if d.endswith(".pdb")] #exclude pdb extension
 
@@ -77,14 +77,14 @@ with open(args.rfd_log_file,"r") as rfdlog:
             if "Making design" in line:
                 found_name = os.path.basename(line.split(" ")[-1])
                 log_found = True
-                print("Design: "+found_name)
+                #print("Design: "+found_name)
         if log_found:
             if "Sequence init" in line:
                 seq = line.split(" ")[-1]
                 fixed[found_name] = [i+1 for i, x in enumerate(seq) if x != "-"]
                 mobile[found_name] = [i+1 for i, x in enumerate(seq) if x == "-"]
                 log_found = False
-                print("Sequence: "+seq)
+                #print("Sequence: "+seq)
 
 #derives all fixed aminoacids in the original structure form contigs
 #example 5-10/A11-18/1/A22-25/9 will result in 11,12,13,14,15,16,17,18,22,23,24,25
@@ -111,43 +111,24 @@ except Exception as e:
 for name in design_names:
     design_pdb = os.path.join(args.INPAINT_FOLDER,name+".pdb")
     cmd.load(design_pdb,"design")
-    
-    fixed_selection = list_to_sele(fixed[name])
-    mobile_selection = list_to_sele(mobile[name])
-
-    cmd.select('fixed_residues', f'design and resi {fixed_selection}')
-    cmd.select('mobile_residues', f'design and resi {mobile_selection}')
-
-    # Calculate distances and create a named selection 'close_pairs'
-    cmd.distance('close_pairs', 'fixed_residues', 'mobile_residues', cutoff=args.INPAINT_AUTO_DISTANCE)
-
-    # Retrieve list of distances and associated residues
-    pairs = cmd.get_session()['names']['close_pairs']['measure'][0]['measurements']
-    
-    # Identify unique fixed residues that are within the distance threshold
-    close_residues = set()
-    for pair in pairs:
-        index1, index2 = pair[0][0]-1, pair[1][0]-1  # PyMOL indices are 1-based, convert to 0-based
-        atom1, atom2 = cmd.index('fixed_residues')[index1], cmd.index('mobile_residues')[index2]
-        resi1, resi2 = atom1[0][1], atom2[0][1]  # Extract residue indices
-        if resi1 in fixed:
-            close_residues.add(resi1)
-        if resi2 in fixed:
-            close_residues.add(resi2)
-
-    #Update occurancy
-    for close_res in close_residues:
-        fixed_occurancy[fixed[name].index(close_res)] += 1
-
+    for f_r in fixed[name]:
+        stored.resn = ""
+        cmd.iterate(f'myprotein and resi {f_r}', 'stored.resn = resn')
+        if not stored.resn == "GLY":
+            for m_r in mobile[name]:
+                if cmd.get_distance(f"design and resi {f_r} and name CA",f"design and resi {m_r} and name CA") <= args.INPAINT_AUTO_DISTANCE:
+                    #check that the side chain of the fixed residue is pointing toward the designed ones
+                    #for this, considers the angle between CAf-CAm and CAf-CBf
+                    angle = cmd.get_angle(f"design and resi {m_r} and name CA",f"design and resi {f_r} and name CA",f"design and resi {f_r} and name CB")
+                    fixed_occurancy[fixed[name].index(f_r)] += 1
+                    break
     cmd.delete("design")
-    cmd.delete("fixed_residues")
-    cmd.delete("mobile_residues")
 
 #Write rfd inpaint flag
 inpaint_flag = set()
 for i in range(len(fixed_original)):
     if fixed_occurancy[i] >= args.INPAINT_AUTO_MIN_OCCURENCY:
-        inpaint_flag.append(fixed_original[i])
+        inpaint_flag.add(fixed_original[i])
 
 if args.INPAINT != "-":
     inpaint_input_chains = args.INPAINT.split('/')
@@ -155,7 +136,7 @@ if args.INPAINT != "-":
         if chain[0].isnumeric(): continue
         min,max=chain[1:].split('-')
         for resi in range(int(min),int(max)+1):
-            inpaint_flag.append(resi)
+            inpaint_flag.add(resi)
 
 if args.INPAINT_AUTO_EXCLUDE != "-":
     to_exclude = sele_to_list(args.INPAINT_AUTO_EXCLUDE)
@@ -165,12 +146,15 @@ if args.INPAINT_AUTO_EXCLUDE != "-":
         except Exception:
             pass
 
-sorted_inpaint_flag = list(sorted(inpaint_flag))
+sorted_inpaint_flag = sorted(list(inpaint_flag))
 inpaint_seq = "A"+list_to_sele(sorted_inpaint_flag).replace('+','/A')
         
 rfd_cmd = ""
 with open(args.rfd_sh_file,'r') as rfd_sh:
-    rfd_cmd = rfd_sh.readline.strip()
+    for line in rfd_sh:
+        line=line.strip()
+        if line != "":
+            rfd_cmd = line
 rfd_cmd += f" 'contigmap.inpaint_seq=[{inpaint_seq}]'"
 with open(args.rfd_sh_file,'w') as rfd_sh:
     rfd_sh.write(rfd_cmd)
@@ -179,42 +163,44 @@ with open(args.rfd_sh_file,'w') as rfd_sh:
 #CSV file
 with open(args.inpaint_csv_file,'w') as inpaint_csv:
     inpaint_csv.write("resi,occurancy")
-    for i in len(fixed_original):
+    for i in range(len(fixed_original)):
         inpaint_csv.write('\n')
         inpaint_csv.write(str(fixed_original[i]))
         inpaint_csv.write(',')
         inpaint_csv.write(str(fixed_occurancy[i]))
 
 #PyMol Session
-q1 = int(args.INPAINT_AUTO_NUM_DESIGNS/3.0)
+
+cmd.load(args.pdb_file, "inpaint")
+
+fixed_original_selection = list_to_sele(fixed_original)
+cmd.select("fixed_residues",f"inpaint and resi {fixed_original_selection}")
+cmd.select("non_fixed_residues",f"inpaint and not resi {fixed_original_selection}")
+cmd.remove("non_fixed_residues")
+cmd.delete("non_fixed_residues")
+cmd.delete("fixed_residues")
+
+q1 = int(args.INPAINT_AUTO_NUM_DESIGNS*1.0/3)
 q2 = int(args.INPAINT_AUTO_NUM_DESIGNS*2.0/3)
-quartile1 = [fixed_original[i] for i in range(len(fixed_original)) if fixed_occurancy[i] <= q1]
+quartile1 = [fixed_original[i] for i in range(len(fixed_original)) if fixed_occurancy[i] > 0 and fixed_occurancy[i] <= q1]
 quartile2 = [fixed_original[i] for i in range(len(fixed_original)) if fixed_occurancy[i] > q1 and fixed_occurancy[i] <= q2]
 quartile3 = [fixed_original[i] for i in range(len(fixed_original)) if fixed_occurancy[i] > q2]
 quartile1_sele = list_to_sele(quartile1)
 quartile2_sele = list_to_sele(quartile2)
 quartile3_sele = list_to_sele(quartile3)
-name1 = f"rare (1-{q1})"
-name2 = f"moderate ({q1+1}-{q2})"
-name3 = f"common ({q2+1}-{args.INPAINT_AUTO_NUM_DESIGNS})"
-cmd.load(args.pdb_file)
-
-fixed_original_selection = list_to_sele(fixed_original)
-cmd.select("fixed",f"resi {fixed_original_selection}")
-cmd.select("non_fixed",f"not resi {fixed_original_selection}")
-cmd.remove("non_fixed")
-cmd.delete("non_fixed")
-cmd.delete("fixed")
-
-cmd.select(name1,f"resi {quartile1_sele}")
-cmd.select(name2,f"resi {quartile2_sele}")
-cmd.select(name3,f"resi {quartile3_sele}")
+name1 = f"rare_1-{q1}"
+name2 = f"moderate_{q1+1}-{q2}"
+name3 = f"common_{q2+1}-{args.INPAINT_AUTO_NUM_DESIGNS}"
+if len(quartile1) != 0: cmd.select(name1,f"inpaint and resi {quartile1_sele}")
+if len(quartile2) != 0: cmd.select(name2,f"inpaint and resi {quartile2_sele}")
+if len(quartile3) != 0: cmd.select(name3,f"inpaint and resi {quartile3_sele}")
 
 cmd.color("gray80")
-cmd.color("yelloworange",name1)
-cmd.color("orange",name2)
-cmd.color("red",name3)
+if len(quartile1) != 0: cmd.color("yelloworange",name1)
+if len(quartile2) != 0: cmd.color("orange",name2)
+if len(quartile3) != 0: cmd.color("red",name3)
 
+print(f"Saving inpaint to {args.inpaint_pse_file}")
 cmd.save(args.inpaint_pse_file)
 
 cmd.quit() #MUST ALWAYS BE AT THE END OF THE SCRIPT
