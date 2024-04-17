@@ -73,12 +73,9 @@ with open(args.rfd_log_file,"r") as rfdlog:
     found_name = ""
     for line in rfdlog:
         line = line.strip()
-        print(line)
         if not log_found:
             if "Making design" in line:
-                for name in design_names:
-                    if line.endswith(name):
-                        found_name = name
+                found_name = os.path.basename(line.split(" ")[-1])
                 log_found = True
                 print("Design: "+found_name)
         if log_found:
@@ -88,9 +85,6 @@ with open(args.rfd_log_file,"r") as rfdlog:
                 mobile[found_name] = [i+1 for i, x in enumerate(seq) if x == "-"]
                 log_found = False
                 print("Sequence: "+seq)
-
-print(fixed)
-print(mobile)
 
 #derives all fixed aminoacids in the original structure form contigs
 #example 5-10/A11-18/1/A22-25/9 will result in 11,12,13,14,15,16,17,18,22,23,24,25
@@ -121,24 +115,21 @@ for name in design_names:
     fixed_selection = list_to_sele(fixed[name])
     mobile_selection = list_to_sele(mobile[name])
 
-    print(fixed[name])
-    print(mobile[name])
-    print(fixed_selection)
-    print(mobile_selection)
-
     cmd.select('fixed_residues', f'design and resi {fixed_selection}')
     cmd.select('mobile_residues', f'design and resi {mobile_selection}')
 
-    # Find close residues
-    cmd.find_pairs('fixed_residues', 'mobile_residues', mode=0, cutoff=args.INPAINT_AUTO_DISTANCE)
+    # Calculate distances and create a named selection 'close_pairs'
+    cmd.distance('close_pairs', 'fixed_residues', 'mobile_residues', cutoff=args.INPAINT_AUTO_DISTANCE)
 
-    # Extract close pairs info
-    close_pairs = cmd.get_raw_alignment('fixed_residues', 'mobile_residues', cutoff=args.INPAINT_AUTO_DISTANCE)
+    # Retrieve list of distances and associated residues
+    pairs = cmd.get_session()['names']['close_pairs']['measure'][0]['measurements']
     
-    # Report results
+    # Identify unique fixed residues that are within the distance threshold
     close_residues = set()
-    for pair in close_pairs:
-        resi1, resi2 = pair[0][1], pair[1][1]  # Extract residue indices from pairs
+    for pair in pairs:
+        index1, index2 = pair[0][0]-1, pair[1][0]-1  # PyMOL indices are 1-based, convert to 0-based
+        atom1, atom2 = cmd.index('fixed_residues')[index1], cmd.index('mobile_residues')[index2]
+        resi1, resi2 = atom1[0][1], atom2[0][1]  # Extract residue indices
         if resi1 in fixed:
             close_residues.add(resi1)
         if resi2 in fixed:
@@ -207,6 +198,13 @@ name1 = f"rare (1-{q1})"
 name2 = f"moderate ({q1+1}-{q2})"
 name3 = f"common ({q2+1}-{args.INPAINT_AUTO_NUM_DESIGNS})"
 cmd.load(args.pdb_file)
+
+fixed_original_selection = list_to_sele(fixed_original)
+cmd.select("fixed",f"resi {fixed_original_selection}")
+cmd.select("non_fixed",f"not resi {fixed_original_selection}")
+cmd.remove("non_fixed")
+cmd.delete("non_fixed")
+cmd.delete("fixed")
 
 cmd.select(name1,f"resi {quartile1_sele}")
 cmd.select(name2,f"resi {quartile2_sele}")

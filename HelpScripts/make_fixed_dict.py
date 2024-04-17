@@ -62,24 +62,25 @@ fixed_dict = dict()
 mobile_dict = dict()
 if args.FIXED == "rfd": #derive from logfile
     with open(args.rfd_log_file,"r") as rfdlog:
-        all_log = [line.strip() for line in rfdlog.readlines()]
-        for name in design_names:
-            fixed_dict[name] = dict()
-            mobile_dict[name] = dict()
-            seq = ""
-            #The sequence input is found a few lines after RFD says it is designing something
-            log_found = False
-            for line in all_log:
-                if not log_found:
-                    if "Making design" in line and line.endswith(name):
-                        log_found = True
-                        continue
-                if log_found:
-                    if "Sequence init" in line:
-                        seq = line.split(" ")[-1]
-                        break
-            fixed_dict[name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x != "-"]
-            mobile_dict[name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x == "-"]
+        log_found = False
+        seq = ""
+        found_name = ""
+        for line in rfdlog:
+            line = line.strip()
+            if not log_found:
+                if "Making design" in line:
+                    found_name = os.path.basename(line.split(" ")[-1])
+                    log_found = True
+                    fixed_dict[found_name] = dict()
+                    mobile_dict[found_name] = dict()
+                    print("Design: "+found_name)
+            if log_found:
+                if "Sequence init" in line:
+                    seq = line.split(" ")[-1]
+                    fixed_dict[found_name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x != "-"]
+                    mobile_dict[found_name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x == "-"]
+                    log_found = False
+                    print("Sequence: "+seq)
 else:
     FIXED = args.FIXED if args.FIXED != '-' else ''
     #not rfd: there is no pLDDT in the rfd output!
