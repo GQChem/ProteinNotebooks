@@ -13,7 +13,7 @@ parser.add_argument('sele_csv_file', type=str, help = "Path to af2.log file")
 parser.add_argument('af2_out_folder', type=str, help = "path to af2 generated pdbs")
 parser.add_argument('pdb_file', type=str, help = "RMSD will be included as a metrics. Write - otherwise, don't leave empty!")
 parser.add_argument('rank_output_csv_file', type=str, help = "where to save")
-parser.add_argument('metric', type=str, help = "pLDDT or pTM or RMSD")
+parser.add_argument('metric', type=str, help = "pLDDT or pTM or RMSD or pLDDT/RMSD")
 parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
@@ -192,7 +192,9 @@ with open(args.af2_log_file,"r") as af2log:
                 folded_pdb_file = os.path.join(args.af2_out_folder,f"{name}_unrelaxed_{folded_pdb}"+".pdb")
                 if args.pdb_file.endswith(".pdb"):
                     if os.path.exists(folded_pdb_file):
-                        scores["RMSD"] = "{:.4f}".format(calculate_rmsd(folded_pdb_file))
+                        rmsd = calculate_rmsd(folded_pdb_file)
+                        scores["RMSD"] = "{:.4f}".format(rmsd)
+                        scores["pLDDT/RMSD"]="{:.3f}".format(float(scores["pLDDT"])/rmsd) if rmsd > 0 else 0
                     else:
                         scores["RMSD"] = "-"                
                 #Add data from MPNN

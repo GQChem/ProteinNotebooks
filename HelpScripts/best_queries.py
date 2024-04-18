@@ -1,3 +1,8 @@
+"""
+Script used by RFdiffusion in case a model other than AlphaFold is used to fold the proteins
+It selects the best queries
+"""
+
 import argparse
 
 parser = argparse.ArgumentParser(description='Slices the queries for alphafold refolding of the best ones')
@@ -9,19 +14,28 @@ parser.add_argument('best_queries_csv_file', type=str)
 # Parse the arguments
 args = parser.parse_args()
 
-import os
-
 ranked_keys = []
 best_ids = []
+num_d = 0 #Number of best designs considered
+best_designs = []
 with open(args.rank_output_csv_file,"r") as ranked_csv:
     ranked_keys = ranked_csv.readline().strip().split(',')
     name_i = ranked_keys.index('name')
-    best_i = 0
     for line in ranked_csv:
-        if best_i >= args.FOLD_BEST_WITH_ALPHAFOLD:
+        if num_d >= args.FOLD_BEST_WITH_ALPHAFOLD:
             break
-        best_ids.append(line.strip().split(',')[name_i])
-        best_i += 1
+        name = line.strip().split(',')[name_i]
+        if "_design_" in name:
+            #Comes from RFdiffusion
+            design,sequence = name.split("_design_")[1].split('_')
+            if not design in best_designs:
+                best_designs.append(design)
+                best_ids.append(name)
+                num_d += 1
+        else:
+            best_ids.append(name)
+            num_d += 1
+
 
 queries_keys = []
 best_queries_rows = []

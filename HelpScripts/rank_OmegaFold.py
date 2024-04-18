@@ -8,7 +8,7 @@ parser.add_argument('sele_csv_file', type=str, help = "Path to of.log file")
 parser.add_argument('of_out_folder', type=str, help = "path to of generated pdbs")
 parser.add_argument('pdb_file', type=str, help = "RMSD will be included as a metrics. Write - otherwise, don't leave empty!")
 parser.add_argument('rank_output_csv_file', type=str, help = "where to save")
-parser.add_argument('metric', type=str, help = "pLDDT or RMSD")
+parser.add_argument('metric', type=str, help = "pLDDT or RMSD or pLDDT/RMSD")
 parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
@@ -17,6 +17,8 @@ parser.add_argument('only_first', type=bool, help = "Only compare the best foldi
 """
 metric cannot be pTM with omegafold because it is not given in output (calculation could be implemented later)
 Only_first is not used here because OmegaFold only gives one pdb in output
+
+General warning: In OmegaFold output, first residue is indexed as 0, whereas in AlphaFold it is indexed as 1
 """
 
 # Parse the arguments
@@ -179,7 +181,9 @@ with open(args.of_log_file,"r") as oflog:
             scores["name"]=name
             scores["pLDDT"] = "{:.2f}".format(calculate_plddt(path))
             if args.pdb_file.endswith(".pdb"): #a pdb is given as input
-                scores["RMSD"] = "{:.4f}".format(calculate_rmsd(path))
+                rmsd = calculate_rmsd(path)
+                scores["RMSD"] = "{:.4f}".format(rmsd)
+                scores["pLDDT/RMSD"]="{:.3f}".format(float(scores["pLDDT"])/rmsd) if rmsd > 0 else 0
             #Add data from MPNN
             for k in pmpnn_keys:
                 scores[k] = pmpnn_data[name][k]
@@ -307,7 +311,20 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.load(scores["path"], mobile_obj)
         cmd.color("hotpink",mobile_obj)
         fixed_sele = scores["fixed"]
-        cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
+        """
+        OmegaFold indeces start from 0, not 1, so here we are shifting the selection accordingly
+        """
+        plus_parts = fixed_sele.split('+')
+        new_pluses = []
+        for plus in plus_parts:
+            if '-' in plus:
+                start, end = plus.split('-')
+                adjusted = f"{int(start)-1}-{int(end)-1}"
+            else:
+                adjusted = str(int(plus) - 1)
+        new_pluses.append(adjusted)
+        fixed_sele_shifted = '+'.join(new_pluses)
+        cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele_shifted}")
     cmd.alignto("original",args.alignment)
     cmd.save(args.pymol_pse_file)
 

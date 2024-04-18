@@ -59,7 +59,7 @@ def list_to_sele(a):
 
 import os
 import pymol
-from pymol import cmd, stored
+from pymol import cmd
 import numpy as np
 
 design_names = [d[:-4] for d in os.listdir(args.INPAINT_FOLDER) if d.endswith(".pdb")] #exclude pdb extension
@@ -87,7 +87,7 @@ with open(args.rfd_log_file,"r") as rfdlog:
                 #print("Sequence: "+seq)
 
 #derives all fixed aminoacids in the original structure form contigs
-#example 5-10/A11-18/1/A22-25/9 will result in 11,12,13,14,15,16,17,18,22,23,24,25
+#example 5-10/A22-25/1/A11-18/9 will result in 22,23,24,25,11,12,13,14,15,16,17,18
 fixed_original = []
 contig_chains = args.CONTIGS.split('/')
 for chain in contig_chains:
@@ -161,18 +161,19 @@ if args.INPAINT_AUTO_EXCLUDE != "-":
         except Exception:
             pass
 
-sorted_inpaint_flag = sorted(list(inpaint_flag))
-inpaint_seq = "A"+list_to_sele(sorted_inpaint_flag).replace('+','/A')
-        
-rfd_cmd = ""
-with open(args.rfd_sh_file,'r') as rfd_sh:
-    for line in rfd_sh:
-        line=line.strip()
-        if line != "":
-            rfd_cmd = line
-rfd_cmd += f" 'contigmap.inpaint_seq=[{inpaint_seq}]'"
-with open(args.rfd_sh_file,'w') as rfd_sh:
-    rfd_sh.write(rfd_cmd)
+if len(inpaint_flag) > 0: 
+    sorted_inpaint_flag = sorted(list(inpaint_flag))
+    inpaint_seq = "A"+list_to_sele(sorted_inpaint_flag).replace('+','/A')
+    print(f"Inpainting: {inpaint_seq}")
+    rfd_cmd = ""
+    with open(args.rfd_sh_file,'r') as rfd_sh:
+        for line in rfd_sh:
+            line=line.strip()
+            if line != "":
+                rfd_cmd = line
+    rfd_cmd += f" 'contigmap.inpaint_seq=[{inpaint_seq}]'"
+    with open(args.rfd_sh_file,'w') as rfd_sh:
+        rfd_sh.write(rfd_cmd)
 
 #Save data
 #CSV file
