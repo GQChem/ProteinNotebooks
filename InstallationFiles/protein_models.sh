@@ -59,35 +59,10 @@ if [ ! -d "OmegaFold" ]; then
     cd OmegaFold
     python setup.py install
     wget https://helixon.s3.amazonaws.com/release1.pt
-    #wget https://helixon.s3.amazonaws.com/release2.pt
+    wget https://helixon.s3.amazonaws.com/release2.pt
     cd ..
 else
     echo Already installed
-fi
-
-echo
-echo "E. RFdiffusion All Atom"
-if [ ! -d "rf_diffusion_all_atom" ]; then
-    git clone https://github.com/baker-laboratory/rf_diffusion_all_atom.git
-    cd rf_diffusion_all_atom
-    wget http://files.ipd.uw.edu/pub/RF-All-Atom/containers/rf_se3_diffusion.sif
-    wget http://files.ipd.uw.edu/pub/RF-All-Atom/weights/RFDiffusionAA_paper_weights.pt
-    git submodule init
-    git submodule update
-    cd ..
-else
-    echo "Already installed"
-fi
-
-echo
-echo "F. LigandMPNN"
-if [ ! -d "LigandMPNN" ]; then
-    git clone https://github.com/dauparas/LigandMPNN.git
-    cd LigandMPNN
-    bash get_model_params.sh "./model_params"
-    cd ..
-else
-    echo "Already installed"
 fi
 
 echo

@@ -51,6 +51,7 @@ if $models; then
   env_exists=$(conda env list | grep 'ProteinEnv')
 
   if [ -z "$env_exists" ]; then
+    echo "Creating conda environment..."
     cd ProteinNotebooks/InstallationFiles
     mamba env create -f ProteinEnv.yml 
     cd ../..
@@ -77,6 +78,8 @@ if $models; then
     else
       echo "ProDy is not installed, installing now..."
       pip install prody
+      pip uninstall biopython
+      pip install biopython
     fi
     if echo "$pip_list_output" | grep -q "ipython"; then
       echo "Kernel is already installed"
