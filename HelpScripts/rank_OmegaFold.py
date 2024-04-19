@@ -8,7 +8,7 @@ parser.add_argument('sele_csv_file', type=str, help = "Path to of.log file")
 parser.add_argument('of_out_folder', type=str, help = "path to of generated pdbs")
 parser.add_argument('pdb_file', type=str, help = "RMSD will be included as a metrics. Write - otherwise, don't leave empty!")
 parser.add_argument('rank_output_csv_file', type=str, help = "where to save")
-parser.add_argument('metric', type=str, help = "pLDDT or RMSD or pLDDT/RMSD")
+parser.add_argument('metric', type=str, help = "pLDDT or RMSD")
 parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
@@ -183,7 +183,6 @@ with open(args.of_log_file,"r") as oflog:
             if args.pdb_file.endswith(".pdb"): #a pdb is given as input
                 rmsd = calculate_rmsd(path)
                 scores["RMSD"] = "{:.4f}".format(rmsd)
-                scores["pLDDT/RMSD"]="{:.3f}".format(float(scores["pLDDT"])/rmsd) if rmsd > 0 else 0
             #Add data from MPNN
             for k in pmpnn_keys:
                 scores[k] = pmpnn_data[name][k]
@@ -322,9 +321,13 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
                 adjusted = f"{int(start)-1}-{int(end)-1}"
             else:
                 adjusted = str(int(plus) - 1)
-        new_pluses.append(adjusted)
+            new_pluses.append(adjusted)
         fixed_sele_shifted = '+'.join(new_pluses)
         cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele_shifted}")
+        segments_obj = f"{short_name}_segments"
+        cmd.load(scores["path"], segments_obj)
+        cmd.color("gray80",segments_obj)
+        cmd.color("rainbow",f"{segments_obj} and resi {fixed_sele_shifted}")
     cmd.alignto("original",args.alignment)
     cmd.save(args.pymol_pse_file)
 

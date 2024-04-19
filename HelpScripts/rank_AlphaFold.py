@@ -194,7 +194,6 @@ with open(args.af2_log_file,"r") as af2log:
                     if os.path.exists(folded_pdb_file):
                         rmsd = calculate_rmsd(folded_pdb_file)
                         scores["RMSD"] = "{:.4f}".format(rmsd)
-                        scores["pLDDT/RMSD"]="{:.3f}".format(float(scores["pLDDT"])/rmsd) if rmsd > 0 else 0
                     else:
                         scores["RMSD"] = "-"                
                 #Add data from MPNN
@@ -333,6 +332,10 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.color("hotpink",mobile_obj)
         fixed_sele = scores["fixed"]
         cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
+        segments_obj = f"{short_name}_segments"
+        cmd.load(scores["path"], segments_obj)
+        cmd.color("gray80",segments_obj)
+        cmd.color("rainbow",f"{segments_obj} and resi {fixed_sele}")
     cmd.alignto("original")
     cmd.save(args.pymol_pse_file,args.alignment)
 

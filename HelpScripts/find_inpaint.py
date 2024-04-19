@@ -161,9 +161,11 @@ if args.INPAINT_AUTO_EXCLUDE != "-":
         except Exception:
             pass
 
+sorted_inpaint_sele = ""
 if len(inpaint_flag) > 0: 
     sorted_inpaint_flag = sorted(list(inpaint_flag))
-    inpaint_seq = "A"+list_to_sele(sorted_inpaint_flag).replace('+','/A')
+    sorted_inpaint_sele = list_to_sele(sorted_inpaint_flag)
+    inpaint_seq = "A"+sorted_inpaint_sele.replace('+','/A')
     print(f"Inpainting: {inpaint_seq}")
     rfd_cmd = ""
     with open(args.rfd_sh_file,'r') as rfd_sh:
@@ -179,20 +181,26 @@ if len(inpaint_flag) > 0:
 #CSV file
 with open(args.inpaint_csv_file,'w') as inpaint_csv:
     inpaint_csv.write("resi,occurancy,inpainted")
-    for i in range(len(fixed_original)):
+    #first, order base on resi
+    fixed_touples = [[fixed_occurancy[i],fixed_occurancy[i]] for i in range(len(fixed_original))]
+    fixed_ordered = sorted(fixed_touples,key=lambda x: x[0])
+    for resi,occurancy in fixed_ordered:
         inpaint_csv.write('\n')
-        inpaint_csv.write(str(fixed_original[i]))
+        inpaint_csv.write(str(resi))
         inpaint_csv.write(',')
-        inpaint_csv.write(str(fixed_occurancy[i]))
+        inpaint_csv.write(str(occurancy))
         inpaint_csv.write(',')
-        if fixed_occurancy[i] >= args.INPAINT_AUTO_MIN_OCCURENCY:
+        if occurancy >= args.INPAINT_AUTO_MIN_OCCURENCY:
             inpaint_csv.write('1')
         else:
             inpaint_csv.write('0')
 
 #PyMol Session
 
-cmd.load(args.pdb_file, "inpaint")
+
+pdb_name = os.path.basename(args.pdb_file)
+cmd.load(args.pdb_file, pdb_name)
+cmd.load(args.pdb_file, "Occurancy")
 
 fixed_original_selection = list_to_sele(fixed_original)
 cmd.select("fixed_residues",f"inpaint and resi {fixed_original_selection}")
@@ -212,14 +220,18 @@ quartile3_sele = list_to_sele(quartile3)
 name1 = f"rare_1-{q1}"
 name2 = f"moderate_{q1+1}-{q2}"
 name3 = f"common_{q2+1}-{args.INPAINT_AUTO_NUM_DESIGNS}"
-if len(quartile1) != 0: cmd.select(name1,f"inpaint and resi {quartile1_sele}")
-if len(quartile2) != 0: cmd.select(name2,f"inpaint and resi {quartile2_sele}")
-if len(quartile3) != 0: cmd.select(name3,f"inpaint and resi {quartile3_sele}")
+if len(quartile1) != 0: cmd.select(name1,f"Occurancy and resi {quartile1_sele}")
+if len(quartile2) != 0: cmd.select(name2,f"Occurancy and resi {quartile2_sele}")
+if len(quartile3) != 0: cmd.select(name3,f"Occurancy and resi {quartile3_sele}")
 
 cmd.color("gray80")
 if len(quartile1) != 0: cmd.color("yelloworange",name1)
 if len(quartile2) != 0: cmd.color("orange",name2)
 if len(quartile3) != 0: cmd.color("red",name3)
+if sorted_inpaint_sele != "": 
+    cmd.select("inpainted",f"{pdb_name} and resi {sorted_inpaint_sele}")
+    cmd.color("gray20","inpainted")
+
 
 print(f"Saving inpaint to {args.inpaint_pse_file}")
 cmd.save(args.inpaint_pse_file)

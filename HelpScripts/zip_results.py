@@ -12,7 +12,7 @@ import os
 import zipfile
 
 zip_name = os.path.basename(args.JOB_FOLDER)
-result_files = [file for file in os.listdir(args.JOB_FOLDER) if not file.startswith('_')]
+result_files = [file for file in os.listdir(args.JOB_FOLDER) if '.' in file and not file.startswith('_')]
 zip_file = os.path.join(args.JOB_FOLDER, f"{zip_name}.zip")
 with zipfile.ZipFile(zip_file, 'w') as zip:
     for file in result_files:
