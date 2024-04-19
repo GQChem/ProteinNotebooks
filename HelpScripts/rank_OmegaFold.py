@@ -305,7 +305,6 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         pLDDT_obj = f"{short_name}_pLDDT"
         cmd.load(scores["path"], pLDDT_obj)
         cmd.do(f"rank_plddt {pLDDT_obj}")
-        cmd.align(pLDDT_obj, "original")
         mobile_obj = f"{short_name}_mobile"
         cmd.load(scores["path"], mobile_obj)
         cmd.color("hotpink",mobile_obj)
@@ -327,7 +326,7 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         segments_obj = f"{short_name}_segments"
         cmd.load(scores["path"], segments_obj)
         cmd.color("gray80",segments_obj)
-        cmd.color("rainbow",f"{segments_obj} and resi {fixed_sele_shifted}")
+        cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele_shifted}")
     cmd.alignto("original",args.alignment)
     cmd.save(args.pymol_pse_file)
 

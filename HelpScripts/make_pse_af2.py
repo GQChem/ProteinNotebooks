@@ -100,7 +100,7 @@ if len(pdb_files) > 9: #two give 10
 
 prot_names = []
 for pdb in pdb_files:
-    longname = pdb.split("_unrelaxed_")[0] if "_unrelaxed_" in pdb else pdb.split("_relaxed_")[0]
+    longname = pdb.split("_unrelaxed_")[0] if "_unrelaxed_" in pdb else pdb.split("_relaxed_")[0]+"_amber"
     rank = pdb.split("_rank_")[1][2]
     if args.only_first and rank != "1": 
         continue
