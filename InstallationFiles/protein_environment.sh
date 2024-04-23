@@ -1,4 +1,6 @@
 #!/usr/bin/bash
+source /apps/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.3.0/mamba-23.11.0-0-334ztq7i4mzu762ew2x3kbbrrorhe6eg/etc/profile.d/conda.sh
+module load mamba
 
 # Install ProteinEnv if not present
 env_exists=$(conda env list | grep 'ProteinEnv')
