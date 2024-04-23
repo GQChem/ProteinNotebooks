@@ -46,15 +46,18 @@ fi
 
 
 if $models; then
-  echo
-  echo "Checking conda environment..."
-  if [ -f "protein_environment.sh" ]; then
-  rm protein_environment.sh
+  # Install ProteinEnv if not present
+  env_exists=$(conda env list | grep 'ProteinEnv')
+
+  if [ -z "$env_exists" ]; then
+  echo "Creating conda environment..."
+  cd ProteinNotebooks/InstallationFiles
+  mamba env create -f ProteinEnv.yml 
+  cd ../..
+  else
+  echo "ProteinEnv found"
   fi
-  wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/protein_environment.sh
-  chmod +x protein_environment.sh
-  bash protein_environment.sh
-  rm protein_environment.sh
+  echo
 
   echo
   conda activate ProteinEnv #Common to all models, contains pymol as well
