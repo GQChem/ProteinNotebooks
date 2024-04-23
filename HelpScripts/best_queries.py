@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 """
 Script used by RFdiffusion in case a model other than AlphaFold is used to fold the proteins
 It selects the best queries

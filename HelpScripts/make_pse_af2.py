@@ -1,8 +1,11 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 import argparse
 
 parser = argparse.ArgumentParser(description='Makes pse file from af2 output')
 parser.add_argument('af2_out_folder', type=str, help = "path to af2 generated pdbs")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
+parser.add_argument('fasta_file', type=str, help = "Path to fasta to be created")
 parser.add_argument('only_first', type=bool, help = "Only compare the best folding of each sequence generated")
 
 # Parse the arguments
@@ -115,6 +118,7 @@ if len(prot_names) > 1:
     for sn in prot_names[1:]:
         cmd.align(sn, prot_names[0])
 
+cmd.save(args.fasta_file)
 cmd.save(args.pymol_pse_file)
 
 cmd.quit()

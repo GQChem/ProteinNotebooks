@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 import argparse
 
 parser = argparse.ArgumentParser(description='Reads RFD log to create fixed positions')
@@ -182,7 +184,7 @@ if len(inpaint_flag) > 0:
 with open(args.inpaint_csv_file,'w') as inpaint_csv:
     inpaint_csv.write("resi,occurancy,inpainted")
     #first, order base on resi
-    fixed_touples = [[fixed_occurancy[i],fixed_occurancy[i]] for i in range(len(fixed_original))]
+    fixed_touples = [[fixed_original[i],fixed_occurancy[i]] for i in range(len(fixed_original))]
     fixed_ordered = sorted(fixed_touples,key=lambda x: x[0])
     for resi,occurancy in fixed_ordered:
         inpaint_csv.write('\n')

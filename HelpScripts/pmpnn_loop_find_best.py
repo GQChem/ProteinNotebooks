@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 import argparse
 
 parser = argparse.ArgumentParser(description='Copy best pdb from one cycle to the next one in PMPNN_AF2_Loop')

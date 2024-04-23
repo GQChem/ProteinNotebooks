@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 import argparse
 
 parser = argparse.ArgumentParser(description='Makes csv files from ProteinMPNN.fa output ')
@@ -113,10 +115,10 @@ with open(args.queries_fasta_file,"w") as queries_fasta:
     for i,csv_i in enumerate(csv_data):
         if i>0: queries_fasta.write('\n')
         csv_i_uscore = csv_i.split(',')
-        queries.write(">")
-        queries.write(csv_i_uscore[id_i])
-        queries.write('\n')
-        queries.write(csv_i_uscore[seq_i])
+        queries_fasta.write(">")
+        queries_fasta.write(csv_i_uscore[id_i])
+        queries_fasta.write('\n')
+        queries_fasta.write(csv_i_uscore[seq_i])
 #update all fastas
 csv_keys = []
 csv_data = []
@@ -132,9 +134,9 @@ with open(args.all_queries_fasta_file,"w") as queries_fasta:
     for i,csv_i in enumerate(csv_data):
         if i>0: queries_fasta.write('\n')
         csv_i_uscore = csv_i.split(',')
-        queries.write(">")
+        queries_fasta.write(">")
         cycle = csv_i_uscore[cycle_i]
-        queries.write(f"Cycle {cycle}: ")
-        queries.write(csv_i_uscore[id_i])
-        queries.write('\n')
-        queries.write(csv_i_uscore[seq_i])
+        queries_fasta.write(f"Cycle {cycle}: ")
+        queries_fasta.write(csv_i_uscore[id_i])
+        queries_fasta.write('\n')
+        queries_fasta.write(csv_i_uscore[seq_i])

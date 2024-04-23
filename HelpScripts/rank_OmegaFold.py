@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 import argparse
 
 parser = argparse.ArgumentParser(description='Makes csv files from ProteinMPNN.fa output ')
@@ -12,6 +14,7 @@ parser.add_argument('metric', type=str, help = "pLDDT or RMSD")
 parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
+parser.add_argument('rank_best_fasta_file', type=str, help = "Create a fasta file with the sequences of the best N best models")
 parser.add_argument('only_first', type=bool, help = "Only compare the best folding of each sequence generated")
 
 """
@@ -282,8 +285,6 @@ cmd.extend('rank_plddt', plddt)
 
 if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     N_best = args.pymol_best_pse if args.pymol_best_pse < len(ranked_data) else len(ranked_data)
-    cmd.load(args.pdb_file, "original")
-    cmd.color("bluewhite","original")
     num_d = 0 #Number of best designs considered
     best_designs = []
     for i in range(N_best):
@@ -327,6 +328,9 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.load(scores["path"], segments_obj)
         cmd.color("gray80",segments_obj)
         cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele_shifted}")
+    cmd.save(args.rank_best_fasta_file)
+    cmd.load(args.pdb_file, "original")
+    cmd.color("bluewhite","original")
     cmd.alignto("original",args.alignment)
     cmd.save(args.pymol_pse_file)
 

@@ -1,3 +1,5 @@
+#Copyright © 2024 LOCBP @ University of Zürich
+#Distributed under MIT license
 """
 This is used to rank output from the log file of alphafold2
 The reason we use it is that in the log file you can also see pTM, not stored in the pdb file
@@ -11,12 +13,13 @@ parser.add_argument('queries_csv_file', type=str, help = "Path to queries file c
 parser.add_argument('num_pmpnn_seq', type=int, help = "Number of sequences per design")
 parser.add_argument('sele_csv_file', type=str, help = "Path to af2.log file")
 parser.add_argument('af2_out_folder', type=str, help = "path to af2 generated pdbs")
-parser.add_argument('pdb_file', type=str, help = "RMSD will be included as a metrics. Write - otherwise, don't leave empty!")
+parser.add_argument('pdb_file', type=str, help = "")
 parser.add_argument('rank_output_csv_file', type=str, help = "where to save")
 parser.add_argument('metric', type=str, help = "pLDDT or pTM or RMSD or pLDDT/RMSD")
 parser.add_argument('alignment', type=str, help = "align or cealign or super")
 parser.add_argument('pymol_pse_file', type=str, help = "Path to pymol session to be created")
 parser.add_argument('pymol_best_pse', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
+parser.add_argument('rank_best_fasta_file', type=str, help = "Create a fasta file with the sequences of the best N best models")
 parser.add_argument('only_first', type=bool, help = "Only compare the best folding of each sequence generated")
 
 # Parse the arguments
@@ -299,8 +302,6 @@ cmd.extend('rank_plddt', plddt)
 
 if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     N_best = args.pymol_best_pse if args.pymol_best_pse < len(ranked_data) else len(ranked_data)
-    cmd.load(args.pdb_file, "original")
-    cmd.color("bluewhite","original")
     num_d = 0 #Number of best designs considered
     best_designs = []
     for i in range(len(ranked_data)):
@@ -335,6 +336,9 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.load(scores["path"], segments_obj)
         cmd.color("gray80",segments_obj)
         cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele}")
+    cmd.save(args.rank_best_fasta_file)
+    cmd.load(args.pdb_file, "original")
+    cmd.color("bluewhite","original")
     cmd.alignto("original")
     cmd.save(args.pymol_pse_file,args.alignment)
 
