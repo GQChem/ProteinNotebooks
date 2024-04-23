@@ -47,50 +47,19 @@ fi
 
 if $models; then
   echo
-  # Install ProteinEnv if not present
-  env_exists=$(conda env list | grep 'ProteinEnv')
-
-  if [ -z "$env_exists" ]; then
-    echo "Creating conda environment..."
-    cd ProteinNotebooks/InstallationFiles
-    mamba env create -f ProteinEnv.yml 
-    cd ../..
-  else
-    echo "ProteinEnv found"
+  echo "Checking conda environment..."
+  if [ -f "protein_environment.sh" ]; then
+  rm protein_environment.sh
   fi
+  wget https://raw.githubusercontent.com/GQChem/ProteinNotebooks/main/InstallationFiles/protein_environment.sh
+  chmod +x protein_environment.sh
+  bash protein_environment.sh
+  rm protein_environment.sh
 
+  echo
   conda activate ProteinEnv #Common to all models, contains pymol as well
 
   if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
-    echo "Updating environment ProteinEnv"
-
-    conda_list_output=$(conda list)
-    pip_list_output=$(pip list)
-
-    if echo "$conda_list_output" | grep -q "pymol-bundle"; then
-      echo "Pymol is already installed"
-    else
-      echo "Installing Pymol..."
-      conda install -c conda-forge -c schrodinger pymol-bundle
-    fi
-    if python -c "import prody" &> /dev/null; then
-      echo "ProDy is already installed"
-    else
-      echo "ProDy is not installed, installing now..."
-      pip install prody
-      pip uninstall biopython
-      pip install biopython
-    fi
-    if echo "$pip_list_output" | grep -q "ipython"; then
-      echo "Kernel is already installed"
-    else
-      echo "Adding ProteinEnv to Jupyter Kernels"
-      pip install ipython
-      pip install ipykernel
-      ipython kernel install --user --name ProteinEnv
-    fi
-    echo "Environment is up-to-date"
-
     echo
     echo "Setting up models..."
     cd /home/$USER/data
