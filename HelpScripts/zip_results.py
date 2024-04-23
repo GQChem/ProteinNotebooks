@@ -20,21 +20,22 @@ zip_file = os.path.join(args.JOB_FOLDER, f"{zip_name}.zip")
 # Create a list to hold all files and directories to be zipped
 result_files = []
 
-# Walk through the directory, adding files and the DNA folder if present
+# Walk through the directory, adding files and specifically the DNA folder if present
 for root, dirs, files in os.walk(args.JOB_FOLDER):
-    # Filter out hidden files and directories
-    files = [f for f in files if not f.startswith('_') and '.' in f]
-    dirs[:] = [d for d in dirs if d != 'DNA']  # Exclude all but DNA folder from further walking
-
-    for file in files:
-        result_files.append(os.path.join(root, file))
-
-    # If the 'DNA' folder is found, include it and its contents
+    # Check for the 'DNA' folder and add it and its contents
     if 'DNA' in dirs:
-        dna_path = os.path.join(root, 'DNA')
+        dna_index = dirs.index('DNA')
+        dna_path = os.path.join(root, dirs[dna_index])
         for dna_root, dna_dirs, dna_files in os.walk(dna_path):
             for file in dna_files:
                 result_files.append(os.path.join(dna_root, file))
+        # Once DNA is handled, remove it from dirs to prevent further os.walk into DNA
+        dirs.remove('DNA')
+
+    # Add other files from the directory that aren't in DNA
+    for file in files:
+        if not file.startswith('_') and '.' in file:
+            result_files.append(os.path.join(root, file))
 
 # Write collected files and folders to the zip file
 with zipfile.ZipFile(zip_file, 'w') as zip:

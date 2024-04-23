@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('original_pdb_file', type=str, help = "")
 parser.add_argument('folder', type=str, help = "OmegaFold or AlphaFold. The indeces of residues are different between the two")
 parser.add_argument('best_pdb_file', type=str, help = "")
-parser.add_argument('best_pse_file', type=int, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
+parser.add_argument('best_pse_file', type=str, help = "Create a pymol session contaning the N best models aligned with the original protein and colored by pLDDT")
 parser.add_argument('best_fasta_file', type=str, help = "Create a fasta file with the sequences of the best N best models")
 # Parse the arguments
 args = parser.parse_args()
@@ -150,6 +150,7 @@ from pymol import stored
 
 original_name = os.path.basename(original_pdb_file)[:-4]
 best_name = os.path.basename(best_pdb_file)[:-4]
+if original_name == best_name: original_name += "_original"
 best_name_mutations = f"{best_name}_mutations"
 best_name_plddt = f"{best_name}_plddt"
 
@@ -161,27 +162,40 @@ cmd.load(original_pdb_file,original_name)
 cmd.load(best_pdb_file,best_name_mutations)
 cmd.load(best_pdb_file,best_name_plddt)
 
-stored.original_sequence = []
-stored.best_sequence = []
+original_sequence = []
+best_sequence = []
 
-cmd.iterate(f"{original_name} and name CA", "stored.original_sequence.append(resn)")
-cmd.iterate(f"{best_name} and name CA", "stored.best_sequence.append(resn)")
+atom_iterator = cmd.get_model(f"{original_name} and name CA")
+residues_inspected = []
+for atom in atom_iterator.atom:
+    if atom.resi in residues_inspected: continue
+    residues_inspected.append(atom.resi)
+    original_sequence.append(atom.resn)
+atom_iterator = cmd.get_model(f"{best_name_mutations} and name CA")
+residues_inspected = []
+for atom in atom_iterator.atom:
+    if atom.resi in residues_inspected: continue
+    residues_inspected.append(atom.resi)
+    best_sequence.append(atom.resn)
 
 unmutated, mutated = [],[]
 shift = 1 if folder == "AlphaFold" else 0
-for resi in range(shift,shift+len(stored.best_sequence)):
-    best_resn = stored.best_sequence[resi-shift]
-    original_resn = stored.original_sequence[resi-shift]
+for resi in range(shift,shift+len(best_sequence)):
+    best_resn = best_sequence[resi-shift]
+    original_resn = original_sequence[resi-shift]
     if best_resn == original_resn: unmutated.append(resi)
     else: mutated.append(resi)
 
 unmutated_sele = list_to_sele(unmutated)
 mutated_sele = list_to_sele(mutated)
 
-cmd.do("plddt")
+cmd.do(f"rank_plddt {original_name}")
+cmd.do(f"rank_plddt {best_name_plddt}")
 cmd.select("unmutated",f"{best_name_mutations} and resi {unmutated_sele}")
 cmd.select("mutated",f"{best_name_mutations} and resi {mutated_sele}")
+cmd.color("gray70",best_name_mutations)
 cmd.color("hotpink","mutated")
+cmd.alignto(original_name)
 
 cmd.save(best_pse_file)
 

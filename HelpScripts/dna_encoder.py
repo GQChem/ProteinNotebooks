@@ -3,9 +3,9 @@
 """
 Script used by all models to reverse translate to DNA and optimize the sequence
 Usage: python dna_encoder.py path/to/input.fasta path/to/output/prefix
-Requires: pyppeteer, biopython
+Requires: biopython
 """
-print("DNA Encoder uses atgme.org and CoCoPUTs (HIVE, tables updated April 2024). Please cite accordingly.")
+print("DNA Encoder is based on CoCoPUTs (HIVE, tables updated April 2024). Please cite accordingly.")
 
 import argparse
 
@@ -113,77 +113,80 @@ for organism in CoCoPUTs_tables.keys():
 #print(aa_codon_frequency_tables)
 #Make DNA sequences based on relative probabilities of amino acids
 import random
-unoptimized_DNAs = dict()
+weighted_DNAs = dict()
+most_frequent_codons_DNAs = dict()
+half_max_DNAs = dict()
+threshold_weighted_DNAs = dict()
 for protein in protein_sequences.keys():
-    unoptimized_DNAs[protein]=dict()
+    weighted_DNAs[protein]=dict()
+    most_frequent_codons_DNAs[protein]=dict()
+    half_max_DNAs[protein]=dict()
+    threshold_weighted_DNAs[protein]=dict()
+
     sequence = protein_sequences[protein]
     for organism in CoCoPUTs_tables.keys():
-        DNA_seq=""
-        i=0
+        weighted_DNAseq=""
+        most_frequent_codons_DNAseq=""
+        half_max_DNAseq=""
+        threshold_weighted_DNAseq=""
+        aa_count=0
         for aa in sequence:
-            if i>0: DNA_seq+='\t'
+            if aa_count>0: 
+                weighted_DNAseq+='\t'
+                most_frequent_codons_DNAseq+='\t'
+                half_max_DNAseq+='\t'
+                threshold_weighted_DNAseq+='\t'
             codons = aa_codon_frequency_tables[organism][aa][0]
             frequencies = aa_codon_frequency_tables[organism][aa][1]
-            DNA_seq += random.choices(codons, weights=frequencies, k=1) [0]
-            i+=1
-        unoptimized_DNAs[protein][organism]=DNA_seq
+
+            weighted_DNAseq += random.choices(codons, weights=frequencies, k=1) [0]
+
+            max_frequency = max(frequencies)
+            most_frequent_codons_DNAseq += codons[frequencies.index(max_frequency)]
+
+            half_max_indeces = [hmi for hmi in range(len(frequencies)) if frequencies[hmi] >= max_frequency/2.0]
+            codons_half_max = [codons[i] for i in half_max_indeces]
+            frequencies_half_max = [frequencies[i] for i in half_max_indeces]
+            half_max_DNAseq += random.choices(codons_half_max,weights=frequencies_half_max,k=1)[0]
+
+            threshold_indeces = [hmi for hmi in range(len(frequencies)) if frequencies[hmi] >= 10.0]
+            if len(threshold_indeces)>0:
+                codons_threshold = [codons[i] for i in threshold_indeces]
+                frequencies_threshold = [frequencies[i] for i in threshold_indeces]
+                threshold_weighted_DNAseq += random.choices(codons_threshold,weights=frequencies_threshold,k=1)[0]
+            else:
+                threshold_weighted_DNAseq += codons[frequencies.index(max_frequency)]
+
+            aa_count+=1
+
+        weighted_DNAs[protein][organism]=weighted_DNAseq
+        most_frequent_codons_DNAs[protein][organism]=most_frequent_codons_DNAseq
+        half_max_DNAs[protein][organism]=half_max_DNAseq
+        threshold_weighted_DNAs[protein][organism]=threshold_weighted_DNAseq
 #Save
 for organism in CoCoPUTs_tables.keys():
     organism_u = organism.strip().replace(' ','_')
     with open(output_prefix+"_DNA_"+organism_u+"_weighted.fasta",'w') as file_fasta:
         for i, protein in enumerate(list(protein_sequences.keys())):
             if i > 0: file_fasta.write('\n')
-            file_fasta.write(f">{protein}_{organism_u}_weighted")
+            file_fasta.write(f">{protein}_{organism_u}_w")
             file_fasta.write('\n')
-            file_fasta.write(unoptimized_DNAs[protein][organism])
-
-#Optimize based on atgme algorithm
-import asyncio
-from pyppeteer import launch
-
-async def optimize(unoptimized_DNAs, ATGME_tables, debug_mode = True):
-    browser = await launch(headless=not debug_mode)
-
-    optimized_DNAs = dict()
-    for protein in unoptimized_DNAs.keys():
-        optimized_DNAs[protein]=dict()
-        for organism in unoptimized_DNAs[protein].keys():
-            try:
-                page = await browser.newPage()
-                await page.goto('http://atgme.org/')
-                # Wait for the text areas and buttons to be available
-                await page.waitForSelector('#inputsequence', {'visible': True})
-                await page.waitForSelector('#codonusage', {'visible': True})
-                await page.type('#inputsequence', unoptimized_DNAs[protein][organism])  # Example DNA sequence
-                await page.type('#codonusage', ATGME_tables[organism])
-                await page.evaluate('''() => {
-                    startProcessing();
-                }''')
-                await page.waitForSelector('#resultblock', {'visible': True})
-                #await asyncio.sleep(1) 
-                await page.evaluate('''() => {
-                    oneClickUpdateCodons();
-                }''')
-                await page.waitForFunction('document.querySelector("#outputbox_extraheader").innerText.includes("bases, GC%:")')
-                #await asyncio.sleep(1)
-                optimized_DNAs[protein][organism] = await page.evaluate('''() => {
-                    return document.querySelector('#outputsequence').textContent;
-                }''')
-                if debug_mode:
-                    print(optimized_DNAs[protein][organism])
-            except Exception as e:
-                print(f"Error while optimizing protein {protein} for organism {organism}")
-    if debug_mode:
-        await asyncio.sleep(30) #Only for debug in Headless=False mode
-    await browser.close()
-    #Save
-    for organism in ATGME_tables.keys():
-        organism_u = organism.strip().replace(' ','_')
-        with open(output_prefix+"_DNA_"+organism_u+"_atgme.fasta",'w') as file_fasta:
-            for i, protein in enumerate(list(optimized_DNAs.keys())):
-                if i > 0: file_fasta.write('\n')
-                file_fasta.write(f">{protein}_{organism_u}_atgme")
-                file_fasta.write('\n')
-                file_fasta.write(optimized_DNAs[protein][organism])
-
-asyncio.get_event_loop().run_until_complete(optimize(unoptimized_DNAs, ATGME_tables,False))
+            file_fasta.write(weighted_DNAs[protein][organism])
+    with open(output_prefix+"_DNA_"+organism_u+"_most_frequent_codons.fasta",'w') as file_fasta:
+        for i, protein in enumerate(list(protein_sequences.keys())):
+            if i > 0: file_fasta.write('\n')
+            file_fasta.write(f">{protein}_{organism_u}_mfc")
+            file_fasta.write('\n')
+            file_fasta.write(most_frequent_codons_DNAs[protein][organism])
+    with open(output_prefix+"_DNA_"+organism_u+"_more_than_half_maximum_frequency.fasta",'w') as file_fasta:
+        for i, protein in enumerate(list(protein_sequences.keys())):
+            if i > 0: file_fasta.write('\n')
+            file_fasta.write(f">{protein}_{organism_u}_mthmf")
+            file_fasta.write('\n')
+            file_fasta.write(half_max_DNAs[protein][organism])
+    with open(output_prefix+"_DNA_"+organism_u+"_threshold_10.fasta",'w') as file_fasta:
+        for i, protein in enumerate(list(protein_sequences.keys())):
+            if i > 0: file_fasta.write('\n')
+            file_fasta.write(f">{protein}_{organism_u}_t10")
+            file_fasta.write('\n')
+            file_fasta.write(threshold_weighted_DNAs[protein][organism])
