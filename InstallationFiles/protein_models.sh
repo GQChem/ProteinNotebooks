@@ -28,12 +28,6 @@ if [ "$CONDA_DEFAULT_ENV" = "ProteinEnv" ]; then
         pip install ipykernel
         ipython kernel install --user --name ProteinEnv
     fi
-    if echo "$pip_list_output" | grep -q "pyppeteer"; then
-        echo "pyppeteer is already installed"
-    else
-        echo "Installing pyppeteer (headless web interface)"
-        pip install pyppeteer
-    fi
     echo "Environment is up-to-date"
 fi
 
