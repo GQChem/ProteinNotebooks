@@ -325,21 +325,22 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         """
         OmegaFold indeces start from 0, not 1, so here we are shifting the selection accordingly
         """
-        plus_parts = fixed_sele.split('+')
-        new_pluses = []
-        for plus in plus_parts:
-            if '-' in plus:
-                start, end = plus.split('-')
-                adjusted = f"{int(start)-1}-{int(end)-1}"
-            else:
-                adjusted = str(int(plus) - 1)
-            new_pluses.append(adjusted)
-        fixed_sele_shifted = '+'.join(new_pluses)
-        cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele_shifted}")
-        segments_obj = f"{short_name}_segments"
-        cmd.load(scores["path"], segments_obj)
-        cmd.color("gray80",segments_obj)
-        cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele_shifted}")
+        if fixed_sele != "":
+            plus_parts = fixed_sele.split('+')
+            new_pluses = []
+            for plus in plus_parts:
+                if '-' in plus:
+                    start, end = plus.split('-')
+                    adjusted = f"{int(start)-1}-{int(end)-1}"
+                else:
+                    adjusted = str(int(plus) - 1)
+                new_pluses.append(adjusted)
+            fixed_sele_shifted = '+'.join(new_pluses)
+            cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele_shifted}")
+            segments_obj = f"{short_name}_segments"
+            cmd.load(scores["path"], segments_obj)
+            cmd.color("gray80",segments_obj)
+            cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele_shifted}")
     cmd.load(args.pdb_file, "original")
     cmd.color("bluewhite","original")
     cmd.alignto("original",args.alignment)

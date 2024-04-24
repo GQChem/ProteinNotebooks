@@ -208,8 +208,8 @@ with open(args.af2_log_file,"r") as af2log:
                 else:
                     scores["path"] = "-"
                 time_end = comps[1]
-                zero = sum([int(x)*(60**i) for i,x in enumerate(time_zero.split(',')[0].split(':'))])
-                end = sum([int(x)*(60**i) for i,x in enumerate(time_end.split(',')[0].split(':'))])
+                zero = sum([int(x)*(60**(2-i)) for i,x in enumerate(time_zero.split(',')[0].split(':'))])
+                end = sum([int(x)*(60**(2-i)) for i,x in enumerate(time_end.split(',')[0].split(':'))])
                 scores["duration [s]"] = str(end-zero)
                 data.append(scores)
                 scores = dict()
@@ -338,11 +338,12 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.load(scores["path"], mobile_obj)
         cmd.color("hotpink",mobile_obj)
         fixed_sele = scores["fixed"]
-        cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
-        segments_obj = f"{short_name}_segments"
-        cmd.load(scores["path"], segments_obj)
-        cmd.color("gray80",segments_obj)
-        cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele}")
+        if fixed_sele != "":
+            cmd.color("gray80",f"{mobile_obj} and resi {fixed_sele}")
+            segments_obj = f"{short_name}_segments"
+            cmd.load(scores["path"], segments_obj)
+            cmd.color("gray80",segments_obj)
+            cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele}")
     cmd.load(args.pdb_file, "original")
     cmd.color("bluewhite","original")
     cmd.alignto("original")
