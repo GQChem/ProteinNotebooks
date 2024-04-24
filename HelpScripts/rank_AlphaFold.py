@@ -302,6 +302,28 @@ cmd.extend('rank_plddt', plddt)
 
 if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     N_best = args.pymol_best_pse if args.pymol_best_pse < len(ranked_data) else len(ranked_data)
+    """Saving .fasta file"""
+    num_d = 0 #Number of best designs considered
+    best_designs = []
+    for i in range(N_best):
+        scores = ranked_data[i]
+        name = scores["name"]
+        undscore_split = name.split("_")
+        design = undscore_split[-2]
+        sequence = undscore_split[-1]
+        if design.isnumeric():
+            short_name = f"d{design}s{sequence}"
+            if design in best_designs:
+                continue
+            else:
+                best_designs.append(design)
+                num_d += 1
+        else:
+            short_name = f"s{sequence}"
+            num_d += 1
+        cmd.load(scores["path"], short_name)
+    cmd.save(args.rank_best_fasta_file)
+    """Saving PSE file"""
     num_d = 0 #Number of best designs considered
     best_designs = []
     for i in range(len(ranked_data)):
@@ -324,6 +346,7 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
             sequence = name.split("_unrelaxed_")[0].split("_")[-1]
             short_name = f"s{sequence}m{model}"
             num_d += 1
+        cmd.delete(short_name)
         pLDDT_obj = f"{short_name}_pLDDT"
         cmd.load(scores["path"], pLDDT_obj)
         cmd.do(f"rank_plddt {pLDDT_obj}")
@@ -336,7 +359,6 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         cmd.load(scores["path"], segments_obj)
         cmd.color("gray80",segments_obj)
         cmd.spectrum(selection=f"{segments_obj} and resi {fixed_sele}")
-    cmd.save(args.rank_best_fasta_file)
     cmd.load(args.pdb_file, "original")
     cmd.color("bluewhite","original")
     cmd.alignto("original")

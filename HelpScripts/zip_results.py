@@ -2,46 +2,29 @@
 #Distributed under MIT license
 
 #It is assumed that the most important files don't start with an underscore and are not in subfolders
-import argparse
-import os
-import zipfile
 
-# Set up argument parser
+import argparse
+
 parser = argparse.ArgumentParser(description='Creates a zip containing the most important files')
 parser.add_argument('JOB_FOLDER', type=str)
 
 # Parse the arguments
 args = parser.parse_args()
 
-# Define the zip file name based on the job folder
+import os
+import zipfile
+
 zip_name = os.path.basename(args.JOB_FOLDER)
+result_files = [file for file in os.listdir(args.JOB_FOLDER) if '.' in file and not file.startswith('_')]
+DNA_folder=os.path.join(args.JOB_FOLDER,"DNA")
+if os.path.exists(DNA_folder):
+    for file in os.listdir(DNA_folder):
+        result_files.append(f"DNA/{file}")
+
+
 zip_file = os.path.join(args.JOB_FOLDER, f"{zip_name}.zip")
-
-# Create a list to hold all files and directories to be zipped
-result_files = []
-
-# Walk through the directory, adding files and specifically the DNA folder if present
-for root, dirs, files in os.walk(args.JOB_FOLDER):
-    # Check for the 'DNA' folder and add it and its contents
-    if 'DNA' in dirs:
-        dna_index = dirs.index('DNA')
-        dna_path = os.path.join(root, dirs[dna_index])
-        for dna_root, dna_dirs, dna_files in os.walk(dna_path):
-            for file in dna_files:
-                result_files.append(os.path.join(dna_root, file))
-        # Once DNA is handled, remove it from dirs to prevent further os.walk into DNA
-        dirs.remove('DNA')
-
-    # Add other files from the directory that aren't in DNA
-    for file in files:
-        if not file.startswith('_') and '.' in file:
-            result_files.append(os.path.join(root, file))
-
-# Write collected files and folders to the zip file
 with zipfile.ZipFile(zip_file, 'w') as zip:
     for file in result_files:
-        arcname = os.path.relpath(file, args.JOB_FOLDER)  # Set the archive name to relative path for organization
-        zip.write(file, arcname=arcname)
-
+        zip.write(os.path.join(args.JOB_FOLDER,file),arcname=file)
 
 

@@ -110,6 +110,7 @@ except Exception as e:
     print(str(e))
 
 #Find proximity
+print("Processing data..")
 for name in design_names:
     print(name)
     design_pdb = os.path.join(args.INPAINT_FOLDER,name+".pdb")
@@ -205,8 +206,8 @@ cmd.load(args.pdb_file, pdb_name)
 cmd.load(args.pdb_file, "Occurancy")
 
 fixed_original_selection = list_to_sele(fixed_original)
-cmd.select("fixed_residues",f"inpaint and resi {fixed_original_selection}")
-cmd.select("non_fixed_residues",f"inpaint and not resi {fixed_original_selection}")
+cmd.select("fixed_residues",f"Occurancy and resi {fixed_original_selection}")
+cmd.select("non_fixed_residues",f"Occurancy and not resi {fixed_original_selection}")
 cmd.remove("non_fixed_residues")
 cmd.delete("non_fixed_residues")
 cmd.delete("fixed_residues")

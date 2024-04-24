@@ -132,10 +132,10 @@ for protein in protein_sequences.keys():
         aa_count=0
         for aa in sequence:
             if aa_count>0: 
-                weighted_DNAseq+='\t'
-                most_frequent_codons_DNAseq+='\t'
-                half_max_DNAseq+='\t'
-                threshold_weighted_DNAseq+='\t'
+                weighted_DNAseq+=' '
+                most_frequent_codons_DNAseq+=' '
+                half_max_DNAseq+=' '
+                threshold_weighted_DNAseq+=' '
             codons = aa_codon_frequency_tables[organism][aa][0]
             frequencies = aa_codon_frequency_tables[organism][aa][1]
 
