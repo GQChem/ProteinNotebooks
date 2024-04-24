@@ -297,15 +297,16 @@ def plddt(selection="all"):
             pLDDT_sum += atom.b
             residues_inspected.append(resi)
         pLDDT_avg = pLDDT_sum * 1.0 / len(residues_inspected)
-        print(f"Object: {prot}\tpLDDT:{pLDDT_avg}")
+        print(f"Object: {prot}\tpLDDT:{pLDDT_avg:.1f}")
 cmd.extend('rank_plddt', plddt)
 
 if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     N_best = args.pymol_best_pse if args.pymol_best_pse < len(ranked_data) else len(ranked_data)
-    """Saving .fasta file"""
-    num_d = 0 #Number of best designs considered
+    #Find bests
     best_designs = []
-    for i in range(N_best):
+    num_d = 0 #Number of best designs considered
+    designs_considered = []
+    for scores in ranked_data:
         scores = ranked_data[i]
         name = scores["name"]
         undscore_split = name.split("_")
@@ -313,40 +314,23 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
         sequence = undscore_split[-1]
         if design.isnumeric():
             short_name = f"d{design}s{sequence}"
-            if design in best_designs:
+            if design in designs_considered:
                 continue
             else:
-                best_designs.append(design)
+                designs_considered.append(design)
                 num_d += 1
         else:
             short_name = f"s{sequence}"
             num_d += 1
-        cmd.load(scores["path"], short_name)
-    cmd.save(args.rank_best_fasta_file)
+        best_designs.append((short_name,scores))
+    """Saving .fasta file"""
+    if args.rank_best_fasta_file != '-':
+        for short_name,scores in best_designs:
+            cmd.load(scores["path"], short_name)
+        cmd.save(args.rank_best_fasta_file)
+        cmd.delete("all")
     """Saving PSE file"""
-    num_d = 0 #Number of best designs considered
-    best_designs = []
-    for i in range(len(ranked_data)):
-        if num_d >= N_best:
-            break
-        scores = ranked_data[i]
-        name = scores["name"]
-        model = scores["model"]
-        if "_design_" in name:
-            #Comes from RFdiffusion
-            design,sequence = name.split("_design_")[1].split('_')
-            short_name = f"d{design}s{sequence}m{model}"
-            if design in best_designs:
-                continue
-            else:
-                best_designs.append(design)
-                num_d += 1
-        else:
-            #Comes from ProteinMPNN
-            sequence = name.split("_unrelaxed_")[0].split("_")[-1]
-            short_name = f"s{sequence}m{model}"
-            num_d += 1
-        cmd.delete(short_name)
+    for short_name,scores in best_designs:
         pLDDT_obj = f"{short_name}_pLDDT"
         cmd.load(scores["path"], pLDDT_obj)
         cmd.do(f"rank_plddt {pLDDT_obj}")
