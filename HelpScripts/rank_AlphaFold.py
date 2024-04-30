@@ -307,7 +307,6 @@ if len(ranked_data) > 0 and args.pymol_best_pse > 0:
     num_d = 0 #Number of best designs considered
     designs_considered = []
     for scores in ranked_data:
-        scores = ranked_data[i]
         name = scores["name"]
         undscore_split = name.split("_")
         design = undscore_split[-2]

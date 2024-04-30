@@ -10,10 +10,15 @@ parser.add_argument('FIXED', type=str, help="rfd or pymol selection or -")
 parser.add_argument('FIXED_CHAIN', type=str, help="A or B or whatever")
 parser.add_argument('fixed_jsonl_file', type=str, help="output file")
 parser.add_argument('sele_csv_file', type=str, help="output file with selections of fixed and mobile parts")
-
-
 # Parse the arguments
 args = parser.parse_args()
+JOB_FOLDER=args.JOB_FOLDER
+rfd_log_file=args.rfd_log_file
+pLDDT_thr=args.pLDDT_thr
+FIXED=args.FIXED
+FIXED_CHAIN=args.FIXED_CHAIN
+fixed_jsonl_file=args.fixed_jsonl_file
+sele_csv_file=args.sele_csv_file
 
 #Converts a pymol selection into an array
 def sele_to_list(s):
@@ -59,11 +64,11 @@ import os
 import pymol
 from pymol import cmd
 
-design_names = [d[:-4] for d in os.listdir(args.JOB_FOLDER) if d.endswith(".pdb")]
+design_names = [d[:-4] for d in os.listdir(JOB_FOLDER) if d.endswith(".pdb")]
 fixed_dict = dict()
 mobile_dict = dict()
-if args.FIXED == "rfd": #derive from logfile
-    with open(args.rfd_log_file,"r") as rfdlog:
+if FIXED == "rfd": #derive from logfile
+    with open(rfd_log_file,"r") as rfdlog:
         log_found = False
         seq = ""
         found_name = ""
@@ -79,14 +84,14 @@ if args.FIXED == "rfd": #derive from logfile
             if log_found:
                 if "Sequence init" in line:
                     seq = line.split(" ")[-1]
-                    fixed_dict[found_name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x != "-"]
-                    mobile_dict[found_name][args.FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x == "-"]
+                    fixed_dict[found_name][FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x != "-"]
+                    mobile_dict[found_name][FIXED_CHAIN] = [i+1 for i, x in enumerate(seq) if x == "-"]
                     log_found = False
                     print("Sequence: "+seq)
 else:
-    FIXED = args.FIXED if args.FIXED != '-' else ''
+    FIXED = FIXED if FIXED != '-' else ''
     #not rfd: there is no pLDDT in the rfd output!
-    if args.pLDDT_thr < 100:
+    if pLDDT_thr < 100:
         try:
             # Initialize PyMOL in headless mode (no GUI)
             pymol.pymol_argv = ['pymol', '-c']  # -q for quiet, -c for no GUI
@@ -97,8 +102,8 @@ else:
     for name in design_names:
         fixed_dict[name] = dict()
         mobile_dict[name] = dict()
-        if args.pLDDT_thr < 100:
-            pdb_file = os.path.join(args.JOB_FOLDER,name+".pdb")
+        if pLDDT_thr < 100:
+            pdb_file = os.path.join(JOB_FOLDER,name+".pdb")
             try:
                 cmd.load(pdb_file,"prot")
                 fixed_residues = []
@@ -107,37 +112,37 @@ else:
                 parfixed = sele_to_list(FIXED)
                 for atom in atom_iterator.atom:
                     resi = int(atom.resi)
-                    if atom.b < args.pLDDT_thr and not resi in parfixed:
+                    if atom.b < pLDDT_thr and not resi in parfixed:
                         if not resi in mobile_residues:
                             mobile_residues.append(int(atom.resi))
                     else:
                         if not resi in fixed_residues:
                             fixed_residues.append(int(atom.resi))
                 cmd.delete("prot")
-                fixed_dict[name][args.FIXED_CHAIN] = fixed_residues[:]
-                mobile_dict[name][args.FIXED_CHAIN] = mobile_residues[:]
+                fixed_dict[name][FIXED_CHAIN] = fixed_residues[:]
+                mobile_dict[name][FIXED_CHAIN] = mobile_residues[:]
             except Exception as e:
                 print("Error while calculating fixed positions")
                 print(str(e))
-                fixed_dict[name][args.FIXED_CHAIN] = sele_to_list(FIXED)
-                mobile_dict[name][args.FIXED_CHAIN] = []
+                fixed_dict[name][FIXED_CHAIN] = sele_to_list(FIXED)
+                mobile_dict[name][FIXED_CHAIN] = []
         else:
-            fixed_dict[name][args.FIXED_CHAIN] = sele_to_list(FIXED)
-            mobile_dict[name][args.FIXED_CHAIN] = []
+            fixed_dict[name][FIXED_CHAIN] = sele_to_list(FIXED)
+            mobile_dict[name][FIXED_CHAIN] = []
 
-with open(args.fixed_jsonl_file,"w") as jsonl_file:
+with open(fixed_jsonl_file,"w") as jsonl_file:
     #Python converts dictionaries to string having keys inside '', json only recognises ""
     jsonl_file.write(str(fixed_dict).replace("\'","\""))
-with open(args.sele_csv_file,"w") as csv_file:
+with open(sele_csv_file,"w") as csv_file:
     csv_file.write("id,fixed,mobile")
     for id in fixed_dict.keys():
-        fixed = list_to_sele(fixed_dict[id][args.FIXED_CHAIN])
-        mobile = list_to_sele(mobile_dict[id][args.FIXED_CHAIN])
+        fixed = list_to_sele(fixed_dict[id][FIXED_CHAIN]) if FIXED_CHAIN in fixed_dict[id].keys() else ""
+        mobile = list_to_sele(mobile_dict[id][FIXED_CHAIN]) if FIXED_CHAIN in fixed_dict[id].keys() else ""
         csv_file.write("\n")
         csv_file.write(f"{id},{fixed},{mobile}")
         
 #Dictionary of fixed positions looks like this
 #{"5TTA": {"A": [1, 2, 3, 7, 8, 9, 22, 25, 33], "B": []}, "3LIS": {"A": [], "B": []}}
 
-if args.pLDDT_thr < 100:    
+if pLDDT_thr < 100:    
     cmd.quit() #MUST ALWAYS BE AT THE END OF THE SCRIPT
